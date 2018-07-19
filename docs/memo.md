@@ -2,8 +2,25 @@
 title: Composite MRAC
 author: Seong-hun Kim
 documentclass: my-handout
+bibliography: memo.bib --filter pandoc-citeproc
 header-includes: |
 ...
+
+# Purpose
+
+* To suggest a data-efficient adaptive control algorithm with stability proof.
+* To consider time-varying stochastic uncertainties like wind velocity.
+* Relieve the persistent / interval excitation condition by exploiting the
+	non-single-step algorithms.
+
+# Related Works
+
+* Yongping Pan [@pan_composite_2016], [@pan_composite_2018]
+	- Composite learning control
+
+* Girish Chowdhary [@kamalapurkar_concurrent_2017],
+[@chowdhary_concurrent_2013-1]
+	- Concurrent learning
 
 # Parameter Estimation
 
@@ -16,12 +33,12 @@ $$
 \dot{x}_r(t) = A x_r(t) + B_r c(t),
 $$
 with the system matrix $A$ being Hurwitz. Then, we have the following error
-dynamcis
+dynamics
 $$
 \dot{e} = A e(t) + B \Lambda \qty(u(t) + W^T \phi(t, x, c)).
 $$
-The unknowns are a diagonal matrix $\Lambda$ posessing positive elements, and a
-parameter matrix $W$.
+The unknowns are a diagonal matrix $\Lambda$ possessing positive elements, and
+a parameter matrix $W$.
 
 <!-- $$ -->
 <!-- \dot{e}(t) = A_r e(t) + B \Lambda u_a + B \Lambda W^T \phi(t, x) - B \Lambda (I - -->
@@ -85,3 +102,35 @@ $$
 (\hat{y} - y)) \hat{\Lambda}^{-1} - \gamma_2 v_2 (\hat{y} - y)^T B
 \hat{\Lambda}^{-1}.
 $$
+
+
+# Review of Parameter Estimation Techniques
+
+* **Time-Varying Parameter Identification Algorithm** [@rios_time-varying_2017]
+
+Consider
+$$
+\begin{aligned}
+	\dv{\theta(t)}{t} &= \Theta(wt), \\
+	y(t) &= \Gamma^T(wt) \theta(t) + \varepsilon(t).
+\end{aligned}
+$$
+In order to estimate the parameter, the following update law was introduced.
+$$
+\dot{\hat{\theta}}(t) = - K \Gamma(wt) \left\lceil \Gamma^T(wt) \hat{\theta}(t)
+- y(t) \right\rfloor^\gamma,
+$$
+where $\lceil \cdot \rfloor^\gamma \coloneqq \abs{\cdot}^\gamma
+\mathrm{sign}(\cdot)$.
+
+* **Stochastic Gradient Descent in Continuous Time** 
+[@sirignano_stochastic_2017]
+
+Consider
+$$
+\dd{X_t} = f^\ast (X_t) \dd{t} + \sigma \dd{W_t},
+$$
+where the goal is to statistically estimate a model $f(x, \theta)$ for
+$f^\ast$, where $\theta \in \MB{R}^n$.
+
+# References
