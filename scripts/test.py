@@ -15,7 +15,7 @@ class System():
     def reset(self):
         return np.zeros(2)
 
-    def step(self, x, u):
+    def step(self, t, x, u):
         args = self.args
 
         next_x = x + args.t_step * (
@@ -181,27 +181,42 @@ class Arguments(UserDict):
             self.data[name] = value
 
 
-class Data():
-    def __init__(self, timebase=None, base=None):
-        if type(base) is not int:
-            self.content = np.zeros(timebase.shape + base.shape)
+class Data(Arguments):
+    def append(self, name, val):
+        val = np.atleast_1d(val)[np.newaxis, :]
+        if name not in self:
+            self[name] = val
         else:
-            self.content = np.zeros(timebase.shape + (base, ))
+            self[name] = np.append(self[name], val, axis=0)
 
-        self.ts = timebase
+    def ele_plot(self, name):
+        x = self.time
+        y = self[name]
 
-    def append(self, index, value):
-        self.content[index] = value
+        plt.plot(x, y)
 
-    def plot(self):
-        fig, ax = plt.subplots()
 
-        x = self.ts
-        y = self.content
+# class Data():
+#     def __init__(self, timebase=None, base=None):
+#         if type(base) is not int:
+#             self.content = np.zeros(timebase.shape + base.shape)
+#         else:
+#             self.content = np.zeros(timebase.shape + (base, ))
 
-        ax.plot(x, y)
+#         self.ts = timebase
 
-        return fig
+#     def append(self, index, value):
+#         self.content[index] = value
+
+#     def plot(self):
+#         fig, ax = plt.subplots()
+
+#         x = self.ts
+#         y = self.content
+
+#         ax.plot(x, y)
+
+#         return fig
 
 
 def main():
@@ -226,32 +241,27 @@ def main():
     system = System(args)
     control = Cmrac(system)
 
-    data = Arguments()
-
     x = system.reset()
-    data.xs = Data(args.ts, x)
-
     control.reset()
 
-    data.us = Data(args.ts, 1)
-
+    data = Data()
     for i in range(args.ts.size):
         t = args.ts[i]
         u = control.get_inputs(t, x)
 
         # step
-        next_x = system.step(x, u)
+        next_x = system.step(t, x, u)
 
         # controller update
         control.update(t, x)
 
-        data.xs.append(i, x)
-        data.us.append(i, u)
+        data.append('time', t)
+        data.append('state', x)
+        data.append('input', u)
 
         x = next_x
 
-    data.xs.plot()
-    data.us.plot()
+    data.ele_plot('state')
 
     plt.show()
 
