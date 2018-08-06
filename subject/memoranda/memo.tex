@@ -182,6 +182,25 @@ formulated as
 \end{equation*}
 
 
+\section{SDP Formulation}
+
+The above problem can be viewed as an SDP problem.
+\begin{equation*}
+	\begin{aligned}
+		\operatorname*{minimize}_{x}\quad & c^T x \\
+		\text{subject to}\quad & \sum_{i=1}^N x_i \Phi_i + s \cdot (-I) \succeq 0\\
+		& \int_0^T a(t) \dd{t} = b
+	\end{aligned}
+\end{equation*}
+where
+\begin{equation*}
+	\begin{aligned}
+		c &= [0, \dotsc, 0, -1]^T \\
+		x &= [a_1, \dotsc, a_N, s]^T \\
+	\end{aligned}
+\end{equation*}
+
+
 \section{Appendix}
 
 \begin{lemma}[Some facts of matrix algebra]
