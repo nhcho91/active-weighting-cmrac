@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.linalg as sla
+import cvxpy as cvx
 from collections import deque, UserDict
 
 import matplotlib.pyplot as plt
@@ -29,9 +30,8 @@ class System():
 
 class Uncertainty():
     def __init__(self, args):
-        self.W = np.array([-18.59521, 15.162375, -62.45153,
-                           9.54708, 21.45291])[:, np.newaxis]
-        self.Lambda = np.diag([0.7])
+        self.W = args.W
+        self.Lambda = args.Lambda
 
     def basis(self, x):
         return np.hstack((x, np.abs(x)*x[1], x[0]**3))
@@ -48,6 +48,24 @@ class DirectMrac():
         self.P = sla.solve_lyapunov(self.args.A.T, self.args.Q_lyap)
 
 
+class Clmrac():
+    def __init__(self, system):
+        self.args = system.args
+
+        self.hstack = deque(maxlen=self.args.ndim_basis)
+
+    def update(self, new_data):
+        hstack = self.hstack
+
+        if len(hstack) >= hstack.maxlen:
+            for i in range(len(hstack)):
+                new_hstack = hstack.copy()
+                new_hstack[i] = new_data
+
+        else:
+            hstack.apend(new_data)
+
+
 class Cmrac():
     def __init__(self, system):
         self.basis = system.unc.basis
@@ -56,7 +74,7 @@ class Cmrac():
         delta_num = int(self.args.delta / self.args.t_step)
         self.memory = deque(maxlen=delta_num)
 
-        self.P = sla.solve_lyapunov(self.args.A.T, self.args.Q_lyap)
+        self.P = sla.solve_lyapunov(self.args.A.T, -self.args.Q_lyap)
 
     def reset(self):
         args = self.args
@@ -101,11 +119,11 @@ class Cmrac():
 
         # realize variables
         xr = self.xr
-        v1 = self.v1
-        v2 = self.v2
-        v3 = self.v3
-        lambdahat = self.lambdahat
-        vhat = self.vhat
+        # v1 = self.v1
+        # v2 = self.v2
+        # v3 = self.v3
+        # lambdahat = self.lambdahat
+        # vhat = self.vhat
         c = self.command(t)
 
         e = x - xr
@@ -121,51 +139,51 @@ class Cmrac():
 
         x_delta, e_delta, what_delta = self.memory[0]
 
-        y = e - e_delta - args.A.dot(v3[:, np.newaxis]).ravel()
-        yhat = args.B.dot(
-            - lambdahat.dot(v1[:, np.newaxis])
-            + vhat.dot(v2[:, np.newaxis])
-        ).ravel()
+        # y = e - e_delta - args.A.dot(v3[:, np.newaxis]).ravel()
+        # yhat = args.B.dot(
+        #     - lambdahat.dot(v1[:, np.newaxis])
+        #     + vhat.dot(v2[:, np.newaxis])
+        # ).ravel()
 
         # update reference model
         next_xr = xr + args.t_step * (
             args.A.dot(xr[:, np.newaxis]) + args.Br.dot(c[:, np.newaxis])
         ).ravel()
 
-        next_v1 = v1 + args.t_step * (
-            what.T.dot(self.basis(x)[:, np.newaxis])
-            - what_delta.T.dot(self.basis(x_delta)[:, np.newaxis])
-        ).ravel()
+        # next_v1 = v1 + args.t_step * (
+        #     what.T.dot(self.basis(x)[:, np.newaxis])
+        #     - what_delta.T.dot(self.basis(x_delta)[:, np.newaxis])
+        # ).ravel()
 
-        next_v2 = v2 + args.t_step * (
-            self.basis(x) - self.basis(x_delta)
-        )
+        # next_v2 = v2 + args.t_step * (
+        #     self.basis(x) - self.basis(x_delta)
+        # )
 
-        next_v3 = v3 + args.t_step * (e - e_delta)
+        # next_v3 = v3 + args.t_step * (e - e_delta)
 
-        next_lambdahat = lambdahat + args.t_step * (
-            args.g1 * np.diag(v1)
-            * np.diag(args.B.T.dot((yhat - y)[:, np.newaxis]))
-        )
+        # next_lambdahat = lambdahat + args.t_step * (
+        #     args.g1 * np.diag(v1)
+        #     * np.diag(args.B.T.dot((yhat - y)[:, np.newaxis]))
+        # )
 
-        next_vhat = vhat + args.t_step * (
-            - args.g2 * args.B.T.dot((yhat - y)[:, np.newaxis]) * v2
-        )
+        # next_vhat = vhat + args.t_step * (
+        #     - args.g2 * args.B.T.dot((yhat - y)[:, np.newaxis]) * v2
+        # )
 
         next_what = what + args.t_step * (
-            args.g3 * self.basis(x)[:, np.newaxis]
+            args.g_direct * self.basis(x)[:, np.newaxis]
             * e.T.dot(self.P).dot(args.B)
         )
 
         self.xr = next_xr
-        self.v1 = next_v1
-        self.v2 = next_v2
-        self.v3 = next_v3
-        self.lambdahat = next_lambdahat
-        self.vhat = next_vhat
+        # self.v1 = next_v1
+        # self.v2 = next_v2
+        # self.v3 = next_v3
+        # self.lambdahat = next_lambdahat
+        # self.vhat = next_vhat
         self.what = next_what
 
-        return dict(reference_model=xr, w_hat=what)
+        return dict(reference_model=xr, w_hat=what.ravel())
 
         # next_what = - args.g1 * what.dot(np.diag(self.
 
@@ -233,24 +251,30 @@ class Data(Arguments):
 #         return fig
 
 
-def main():
-    args = Arguments()
-    args.A = np.array([[-2, -1], [1, -1]])
-    args.B = np.array([[0, 1]]).T
-    args.Br = np.array([[0, 1]]).T
-    args.Kr = np.array([[1]])
-    args.Q_lyap = np.eye(2)
-    args.g1 = 10
-    args.g2 = 10
-    args.g3 = 100
-    args.delta = 3
-    args.t_step = 0.01
-    args.t_final = 40
-    args.ndim_state = 2
-    args.ndim_input = 1
-    args.ndim_basis = 5
-    args.ts = np.arange(0, args.t_final, args.t_step)
-    args.comp_gain = 0
+def plot_basis(data):
+    system = data.system
+    x = data.time
+
+    plt.figure()
+    plt.plot(x, data.reference_model, 'k--')
+    plt.plot(x, data.state, 'r')
+    plt.title('States')
+
+    plt.figure()
+    for w in args.W.ravel():
+        plt.axhline(y=w, c='k', ls='--')
+    plt.plot(x, data.w_hat, 'r')
+    plt.title('Parameter')
+
+    plt.figure()
+    basis = np.array([system.unc.basis(state).tolist()
+                      for state in data.state])
+    plt.plot(x, basis)
+
+    plt.show()
+
+
+def main(args):
 
     system = System(args)
     control = Cmrac(system)
@@ -277,10 +301,84 @@ def main():
 
         x = next_x
 
-    data.ele_plot('state')
+    data.system = system
+    data.control = control
+
+    # Plot
+    # plot_basis(data)
+
+#     # SDP
+#     N = cvx.Parameter(nonneg=True)
+#     mineig = []
+#     for n in range(10, 21):
+#         N.value = n
+#         a = cvx.Variable(N.value, nonneg=True)
+#         s = cvx.Variable(1, nonneg=True)
+#         constr = [sum(a) == 5]
+
+#         basis = np.array([system.unc.basis(state).tolist()
+#                           for state in data.state])
+#         expr = 0
+#         for ai, phi in zip(a, basis[:N.value]):
+#             expr += phi[:, np.newaxis] * phi * ai
+
+#         constr += [expr - s * np.eye(5) >> 0]
+
+#         obj = cvx.Maximize(s)
+#         prob = cvx.Problem(obj, constr)
+#         prob.solve(solver=cvx.CVXOPT, verbose=True)
+
+#         mineig.append(s.value)
+
+    # SDP
+    N = cvx.Parameter(nonneg=True)
+    mineig = []
+    for n in range(10, 22):
+        N.value = n
+        a = cvx.Variable(N.value, nonneg=True)
+        # s = cvx.Variable(1, nonneg=True)
+        constr = [sum(a) == 5]
+
+        basis = np.array([system.unc.basis(state).tolist()
+                          for state in data.state])
+        expr = 0
+        for ai, phi in zip(a, basis[:N.value]):
+            expr += phi[:, np.newaxis] * phi * ai
+
+        # constr += [expr - s * np.eye(5) >> 0]
+
+        obj = cvx.Maximize(cvx.lambda_min(expr))
+        prob = cvx.Problem(obj, constr)
+        result = prob.solve(solver=cvx.CVXOPT, verbose=True)
+
+        mineig.append(result)
+
+    plt.figure()
+    plt.plot(mineig)
 
     plt.show()
 
+    return data
+
 
 if __name__ == '__main__':
-    main()
+    args = Arguments()
+    args.A = np.array([[-2, -1], [1, -1]])
+    args.B = np.array([[0, 1]]).T
+    args.Br = np.array([[0, 1]]).T
+    args.Kr = np.array([[1]])
+    args.Q_lyap = 100*np.eye(2)
+    args.g_direct = 1000
+    args.g_indirect = 0
+    args.delta = 3
+    args.t_step = 0.01
+    args.t_final = 40
+    args.ndim_state = 2
+    args.ndim_input = 1
+    args.ndim_basis = 5
+    args.ts = np.arange(0, args.t_final, args.t_step)
+    args.W = np.array([-18.59521, 15.162375, -62.45153,
+                       9.54708, 21.45291])[:, np.newaxis]
+    args.Lambda = np.diag([1])
+
+    data = main(args)
