@@ -1,0 +1,132 @@
+\documentclass[nobib]{my-handout}
+
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+
+\begin{document}
+\maketitle
+
+
+\begin{theorem}[Weyl, see~\cite{horn_matrix_2012}]
+	Let $A$ and $B$ be n-by-n Hermitian matrix and let the respective eigenvalues
+	of $A$, $B$, and $A+B$ be $\{\lambda_i(A)\}_{i=1}^n$,
+	$\{\lambda_i(B)\}_{i=1}^n$, and $\{\lambda_i(A+B)\}_{i=1}^n$, ordered
+	algebraically as $\lambda_{\max} = \lambda_n \ge \lambda_{n-1} \ge \cdots \ge
+	\lambda_2 \ge \lambda_1 = \lambda_{\min}$. Then,
+	\begin{equation*}
+		\lambda_i(A+B) \le \lambda_{i+j}(A) + \lambda_{n-j}(B)\qc j=0,1,\dotsc,n-i
+	\end{equation*}
+	for each $i=1,\dotsc,n$. Also,
+	\begin{equation*}
+		\lambda_{i-j+1}(A) + \lambda_j(B) \le \lambda_i(A+B)\qc j=1,\dotsc,i
+	\end{equation*}
+	for each $i=1,\dotsc,n$.
+\end{theorem}
+
+\begin{definition}[Additive spread, see~\cite{merikoski_inequalities_2004}]
+	Let $A$ be n-by-n matrix and let the eigenvalues of $A$ be
+	$\{\lambda_i\}_{i=1}^n$. The \textit{additive spread} is defined as 
+	\begin{equation*}
+		\operatorname{ads} A = \operatorname*{max}_{i, j} \abs{\lambda_i -
+		\lambda_j}.
+	\end{equation*}
+\end{definition}
+
+\begin{lemma}
+	Let $A$ be a real symmetric matrix, and $v$ be a real vector. Then,
+	\begin{equation*}
+		\operatorname{ads} (aA + bvv^T) \le a \operatorname{ads}(A) + b \norm{v}^2
+	\end{equation*}
+	for all $a,\ b \ge 0$.
+\end{lemma}
+
+\begin{proof}
+	See Corollary 2 of~\cite{merikoski_inequalities_2004}.
+\end{proof}
+
+\begin{lemma}
+	\begin{equation*}
+		A^{k+1} = a_k A^k + b_k v_k v_k^T
+	\end{equation*}
+	\begin{equation*}
+		b_k = \frac{(r_1- a_k) \operatorname{ads} A^k}{\norm{v_k}^2}
+	\end{equation*}
+\end{lemma}
+
+\begin{proof}
+	\begin{equation*}
+		\begin{aligned}
+			\operatorname{ads}A^{k+1}
+			&\le a_k \cdot \operatorname{ads} A^k + b_k \norm{v_k}^2 \\
+			&\le r_1 \cdot \operatorname{ads} A^k
+		\end{aligned}
+	\end{equation*}
+\end{proof}
+
+\begin{lemma}
+	\begin{equation*}
+		a_k \lambda_{\max}(A^k) \le \lambda_{\max}(A^{k+1}) \le a_k
+		\lambda_{\max}(A^k) + b_k \norm{v_k}^2
+	\end{equation*}
+	\begin{equation*}
+		b_k = \frac{r_2 \lambda_n(A^k) - a_k \lambda_1(A^k)}{\norm{v_k}^2}
+	\end{equation*}
+\end{lemma}
+
+\begin{proof}
+	\begin{equation*}
+		\begin{aligned}
+			\lambda_n(A^{k+1})
+			&\ge a_k \lambda_1(A^k) + b_k \lambda_n(v_k v_k^T) \\
+			&=r_2 \lambda_n(A^k)\\
+			&= a_k \lambda_1(A^k) + (r - a_k)(\lambda_n(A^k) - \lambda_1(A^k))
+		\end{aligned}
+	\end{equation*}
+\end{proof}
+	
+\begin{equation*}
+	\begin{aligned}
+		\frac{(r_1 - a_k) (\lambda_n(A^k) - \lambda_1(A^k))}{\norm{v_k}^2} = \frac{r_2
+		\lambda_n(A^k) - a_k \lambda_1(A^k)}{\norm{v_k}^2}\\
+		a_k = \frac{r_1 \lambda_n(A^k) - r_1 \lambda_1(A^k) - r_2
+		\lambda_n(A^k)}{\lambda_n(A^k) - 2\lambda_1(A^k)}
+	\end{aligned}
+\end{equation*}
+
+Let $v = \sum_{i=1}^n c_i x_i,\ c_i \in \MB{R}$, where $\{x_i\}_{i=1}^n$ are
+normalized eigenvectors of $A$. Then,
+\begin{equation*}
+	v v^T = X c c^T X^T = X C (X C)^T
+\end{equation*}
+where $X = [x_1, \dotsc, x_n]$, $c = [c_1, \dotsc, c_n]^T$, and $C =
+\operatorname{diag}(c)$.
+
+Let $A = X S S^T X^T$, where $S S^T = \Lambda$ is the diagonal matrix of
+eigenvalues.
+
+\begin{theorem}[See~\cite{bhatia_singular_1990}]
+	Let $A$, $B$ be compact operators. Then for $j=1,2,\dotsc$, we have
+	\begin{equation*}
+		2 s_j(A^\ast B) \le s_j(AA^\ast + BB^\ast)
+	\end{equation*}
+	where $s_j(A),\ j=1,2,\dotsc$ denote the singular values of $A$ in increasing
+	order.
+\end{theorem}
+
+Now, we have
+\begin{equation*}
+	2 s_j (\sqrt{ab} S C) \le s_j (a A + b v v^T)
+\end{equation*}
+and
+\begin{equation*}
+	2 \sqrt{ab} \max_i(c_i \sqrt{\lambda_i}) \le \lambda_{\max} (a A + b vv^T)
+\end{equation*}
+
+
+\bibliographystyle{plain}
+\bibliography{../global.bib}
+
+\end{document}
+

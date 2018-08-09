@@ -1,0 +1,297 @@
+\documentclass[nobib]{my-handout}
+
+\date{August 9, 2018}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{algorithm}{Algorithm}
+
+\theoremstyle{remark}
+\newtheorem{observation}{Observation}
+
+\DeclareMathOperator{\ads}{ads}
+\DeclareMathOperator{\diag}{diag}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Introduction}
+
+Composite adaptive control combines \textit{direct} and
+\textit{indirect} schemes of adaptive
+control~\cite{lavretsky_combined/composite_2009}. The purpose is
+\begin{itemize}
+	\item to obtain the global asymptotic stability of \textit{both} tracking
+		and parameter estimation errors with proper exciting conditions and a
+		matching condition, or
+	\item to simply improve the tracking performance, where the matching condition
+		or the exciting conditions are not satisfied.
+\end{itemize}
+
+\newthought{Fundamental idea} is to exploit a current estimation of the
+parameter estimation error. Consider\sidenote{We define $\Delta(t) = {W^\ast}^T
+\phi(t) + \varepsilon(t)$.}
+\begin{equation*}
+	\dot{e}(t) = A e(t) + B \qty(u(t) + \Delta(t)).
+\end{equation*}
+Convert this system into\sidenote{Sometimes we filter the system as
+\begin{equation*}
+	y_f = {W^\ast}^T \phi_f(t) + \varepsilon_f(t),
+\end{equation*}}
+\begin{equation}\label{eq:regression_form}
+	y(t) = {W^\ast}^T \phi(t) + \varepsilon(t),
+\end{equation}
+where $y(t)$ is measured using
+\begin{equation*}
+	y(t) = B^\dagger \qty(\dot{e}(t) - Ae(t)) - u(t).
+\end{equation*}
+
+\begin{observation}
+	\begin{enumerate}
+		\item[]
+		\item equation \eqref{eq:regression_form} is merely a linear regression form,
+			and
+		\item almost all composite adaptive control
+			schemes~\cite{lavretsky_combined/composite_2009, cho_composite_2018,
+			chowdhary_exponential_2014} use the update law of standard least square
+			regression, which are represented by
+			\begin{equation}\label{eq:general_form_of_composite_update_law}
+				\dot{W}(t) = \Gamma_1 \phi(t) e^T P B - \int_0^t c(t, \tau) \phi(\tau)
+				\epsilon^T(t, \tau) \dd{\tau},
+			\end{equation}
+			where
+			\begin{equation*}
+				\epsilon(t, \tau) = W^T(t) \phi(\tau) - y(\tau).
+			\end{equation*}
+	\end{enumerate}
+\end{observation}
+
+\begin{observation}
+	Consider $c(t, \tau)$ in
+	equation~\eqref{eq:general_form_of_composite_update_law}, 
+	\begin{enumerate}
+		\item \textbf{Standard Least Square Update~\cite{slotine_applied_1991}:} If
+			$c(t, \tau) = \delta(t-\tau)$ where $\delta$ is a Dirac delta function,
+			then the update law is a standard least square form, which requires the
+			PE condition for exponential convergence.
+		\item \textbf{Concurrent Learning~\cite{chowdhary_exponential_2014}:} If
+			$c(t, \tau) = \sum_{i=1}^p \delta(t_i - \tau)$ for $0 \le t_i \le t$,
+			then the update law is a concurrent learning form, which requires the
+			exciting over finite interval condition.
+		\item \textbf{Y. Pan~\cite{pan_composite_2018} and N.
+			Cho~\cite{cho_composite_2018}:} If $c(t, \tau) = \exp(- \int_\tau^{t_i}
+			k(\nu) \dd{\nu})$ for $t_0 \le t_i \le t$, then the update law is the
+			form suggested in, which requires the IE or FE condition.
+	\end{enumerate}
+\end{observation}
+
+
+\section{Motivation}
+
+\begin{itemize}
+	\item \textbf{Without the PE Condition:} The standard least square update is
+		valid only with the PE condition.
+	\item \textbf{Time-Varying Parameters:} Concurrent learning, Y. Pan and N.
+		Cho's algorithms are not suited for time-varying parameter estimation, as
+		it can be stuck in the past time where the minimum singular/eigenvalue are
+		dominant.
+	\item \textbf{Stochastic Estimation:} The standard least square update can
+		deal with the stochastic estimation\sidenote{$\varepsilon(t)$ is a random
+		variable} only when the PE condition is satisfied. Concurrent learning and
+		its variations are sensitive to such noises, as the history stack
+		algorithms are heavily dependent on the singular values.
+	\item \textbf{Smooth Estimation}: Parameter estimation in concurrent
+		learning, Y. Pan and N. Cho's algorithms are not smooth, as the update is
+		piecewise constant in time.
+\end{itemize}
+
+
+\section{Preliminaries}
+
+\begin{theorem}[Weyl, see~\cite{horn_matrix_2012}]
+	Let $A$ and $B$ be n-by-n Hermitian matrix and let the respective eigenvalues
+	of $A$, $B$, and $A+B$ be $\{\lambda_i(A)\}_{i=1}^n$,
+	$\{\lambda_i(B)\}_{i=1}^n$, and $\{\lambda_i(A+B)\}_{i=1}^n$, ordered
+	algebraically as $\lambda_{\max} = \lambda_n \ge \lambda_{n-1} \ge \cdots \ge
+	\lambda_2 \ge \lambda_1 = \lambda_{\min}$. Then,
+	\begin{equation*}
+		\lambda_i(A+B) \le \lambda_{i+j}(A) + \lambda_{n-j}(B)\qc j=0,1,\dotsc,n-i
+	\end{equation*}
+	for each $i=1,\dotsc,n$. Also,
+	\begin{equation*}
+		\lambda_{i-j+1}(A) + \lambda_j(B) \le \lambda_i(A+B)\qc j=1,\dotsc,i
+	\end{equation*}
+	for each $i=1,\dotsc,n$.
+\end{theorem}
+
+\begin{definition}[Additive spread, see~\cite{merikoski_inequalities_2004}]
+	Let $A$ be n-by-n matrix and let the eigenvalues of $A$ be
+	$\{\lambda_i\}_{i=1}^n$. The \textit{additive spread} is defined as 
+	\begin{equation*}
+		\ads A = \operatorname*{max}_{i, j} \abs{\lambda_i -
+		\lambda_j}.
+	\end{equation*}
+\end{definition}
+
+\begin{corollary}[Merikoski, see~\cite{merikoski_inequalities_2004}]
+	Let $A$ and $B$ be Hermitian n-by-n matrices. Then,
+	\begin{equation*}
+		\ads (A+B) \le \ads A + \ads
+	\end{equation*}
+\end{corollary}
+
+\begin{theorem}[Bhatia, see~\cite{bhatia_singular_1990}]
+	Let $A,\ B \in \MC{M}_n(\MB{C})$ be compact operators. Then for $j=1,2,\dotsc$,
+	we have
+	\begin{equation*}
+		2 s_j(A^\ast B) \le s_j(AA^\ast + BB^\ast)
+	\end{equation*}
+	where $s_j(A),\ j=1,2,\dotsc$ denote the singular values of $A$ in increasing
+	order.
+\end{theorem}
+
+
+\section{Problem Formulation}
+
+Consider the second term of \eqref{eq:general_form_of_composite_update_law},
+which can be represented by
+\begin{equation*}
+	\dot{U}(t) = - p_1(t) U(t) + p_2(t) \phi(t) \phi^T(t) \qc U(0) = 0,
+\end{equation*}
+and its discrete counterpart as
+\begin{equation}\label{eq:discrete_update_law}
+	A^{k+1} = a_k A^k + b_k v_k v_k^T \qc A^0 = 0
+\end{equation}
+with slight abuse of notations for simplicity, and denote $A^k = U(t_0 + k
+\Delta t),\ v_k = \phi(t_0 + k \Delta t)$.
+
+\newthought{The purpose} is to design $a_k$ and $b_k$
+\begin{enumerate}
+	\item to increase the minimum eigenvalue of $A^k$ as $k$ increases, and
+	\item to bound, simultaneously, the maximum eigenvalue of $A^k$.
+\end{enumerate}
+for given $v_k$ at each step $k$.
+
+
+\section{Main Results}
+
+Let $A$ be an n-by-n positive semidefinite matrix, and $v$ be an
+n-dimensional real vector, and $\{\lambda_i(\cdot)\}$ be the eigenvalues
+of $(\cdot)$ ordered algebraically as $\lambda_{\max} = \lambda_n \ge
+\lambda_{n-1} \ge \cdots \ge \lambda_2 \ge \lambda_1 = \lambda_{\min}$.
+
+Let $\Lambda$ and $X$ be the diagonal matrix of eigenvalues of $A$, and the
+corresponding matrix of eigenvectors, i.e.
+\begin{equation*}
+	A = X \Lambda X^T.
+\end{equation*}
+
+Finally, let
+\begin{equation*}
+	A^\prime = a A + b v v^T,
+\end{equation*}
+which is an abbreviated form of~\eqref{eq:discrete_update_law}.
+
+\begin{lemma}\label{lem:shrinking_ads}
+	If there exist $r_1 \in [0, 1]$, $a \in [0, r_1]$ and $b \in [0, \infty)$
+	satisfying
+	\begin{equation*}
+		a \cdot \ads{A} + b \norm{v}^2 \le r_1 \ads{A},
+	\end{equation*}
+	and let $A^\prime = a A + b v v^T$. Then,
+	\begin{equation*}
+		\ads{A^\prime} \le \ads{A}.
+	\end{equation*}
+\end{lemma}
+
+\begin{proof}
+	From Corollary 2 of~\cite{merikoski_inequalities_2004},
+	\begin{equation*}
+		\begin{aligned}
+			\ads{A^\prime} &= \ads(a A + b v v^T) \\
+										 &\le \ads(a A) + \ads(b v v^T) \\
+										 &= a \ads(A) + b \norm{v}^2 \\
+										 &\le r_1 \ads{A} \\
+										 &\le \ads{A}
+		\end{aligned}
+	\end{equation*}
+\end{proof}
+
+\begin{lemma}\label{lem:mod_bhatia}
+	For all $a, b \ge 0$, and $j=1,\dotsc,n$,
+	\begin{equation*}
+		2 \sqrt{ab} \lambda_j \qty(\Lambda^{1/2} \diag(X^T v)) \le
+		\lambda_j \qty(A^\prime).
+	\end{equation*}
+\end{lemma}
+
+\begin{proof}
+	Observe that $A = X \Lambda^{1/2} (X \Lambda^{1/2})^T$ and $v v^T = X C (X
+	C)^T$ where $C \coloneqq \diag(X^T v)$. From Bhatia's
+	theorem~\cite{bhatia_singular_1990}, we have 
+	\begin{equation*}
+		\begin{aligned}
+			\lambda_j (A^\prime)
+			&= s_j \qty((\sqrt{a} X \Lambda^{1/2})(\sqrt{a} X \Lambda^{1/2})^T +
+			(\sqrt{b} X C)(\sqrt{b} X C)^T) \\
+			&\ge 2 s_j \qty(\sqrt{ab} \Lambda^{1/2} X^T X C) \\
+			&= 2 \sqrt{ab} \lambda_j \qty(\Lambda^{1/2} C).
+		\end{aligned}
+	\end{equation*}
+\end{proof}
+
+\begin{lemma}\label{lem:bounding_lambda_max}
+	For all $a, b \ge 0$,
+	\begin{equation}\label{eq:lambda_max_inequality}
+		2 \sqrt{ab} \norm{\Lambda^{1/2} X^T v}_{\infty} \le
+		\lambda_{\max}(A^\prime) \le a \lambda_{\max}(A) + b \norm{v}^2.
+	\end{equation}
+\end{lemma}
+
+\begin{proof}
+	The right inequality~\eqref{eq:lambda_max_inequality} is directly derived
+	from Weyl's theorem~\cite{horn_matrix_2012} as
+	\begin{equation*}
+		\lambda_n(A^\prime) \le a \lambda_n(A) + b \lambda_n(v v^T),
+	\end{equation*}
+	and the left inequality is from Lemma~\ref{lem:mod_bhatia} for $j = n$. 
+\end{proof}
+	
+Now, we want to derive an algorithm that
+\begin{enumerate}
+	\item increases the minimum eigenvalue,
+		\begin{equation*}
+			\lambda_1 (A^\prime) \ge \lambda_1 (A),
+		\end{equation*}
+	\item and bounding the maximum eigenvalue as
+		\begin{equation*}
+			\lambda_{\max}(A^\prime) \le \lambda_{\max}(A).
+		\end{equation*}
+\end{enumerate}
+
+Given $r_1$, from Lemma~\ref{lem:shrinking_ads}, we have the following
+condition
+\begin{equation}
+	(\ads{A}) a + \norm{V}^2 b \le r_1 \ads{A}.
+\end{equation}
+Moreover, from Lemma~\ref{lem:bounding_lambda_max}, we have following two
+conditions
+\begin{equation}
+	\begin{aligned}
+		ab &\ge \frac{\lambda_1(A) + r_1 \ads{A}}{4 \norm{\Lambda^{1/2} X^T
+		v}_{\infty}^2} \\
+		\lambda_n(A) a + \norm{v}^2 b &\le \lambda_n(A)
+	\end{aligned}
+\end{equation}
+
+\bibliographystyle{plain}
+\bibliography{../global.bib}
+
+\end{document}
