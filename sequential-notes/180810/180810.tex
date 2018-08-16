@@ -1,0 +1,545 @@
+\documentclass[nobib]{my-handout}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{algorithm}{Algorithm}
+
+\theoremstyle{remark}
+\newtheorem{observation}{Observation}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\ads}{ads}
+\DeclareMathOperator{\gap}{gap}
+\DeclareMathOperator{\diag}{diag}
+\newcommand{\lmin}{\lambda_{\min}}
+\newcommand{\lmax}{\lambda_{\max}}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Introduction}
+
+Composite adaptive control combines \textit{direct} and
+\textit{indirect} schemes of adaptive
+control~\cite{lavretsky_combined/composite_2009}. The purpose is
+\begin{itemize}
+	\item to obtain the global asymptotic stability of \textit{both} tracking
+		and parameter estimation errors with proper exciting conditions and a
+		matching condition, or
+	\item to simply improve the tracking performance, where the matching condition
+		or the exciting conditions are not satisfied.
+\end{itemize}
+
+\newthought{Fundamental idea} is to exploit a current estimation of the
+parameter estimation error. Consider\sidenote{We define $\Delta(t) = {W^\ast}^T
+\phi(t) + \varepsilon(t)$.}
+\begin{equation*}
+	\dot{e}(t) = A e(t) + B \qty(u(t) + \Delta(t)).
+\end{equation*}
+Convert this system into\sidenote{Sometimes we filter the system as
+\begin{equation*}
+	y_f = {W^\ast}^T \phi_f(t) + \varepsilon_f(t),
+\end{equation*}}
+\begin{equation}\label{eq:regression_form}
+	y(t) = {W^\ast}^T \phi(t) + \varepsilon(t),
+\end{equation}
+where $y(t)$ is measured using
+\begin{equation*}
+	y(t) = B^\dagger \qty(\dot{e}(t) - Ae(t)) - u(t).
+\end{equation*}
+
+\begin{observation}
+	\begin{enumerate}
+		\item[]
+		\item equation \eqref{eq:regression_form} is merely a linear regression form,
+			and
+		\item almost all composite adaptive control
+			schemes~\cite{lavretsky_combined/composite_2009, cho_composite_2018,
+			chowdhary_exponential_2014} use the update law of standard least square
+			regression, which are represented by
+			\begin{equation}\label{eq:general_form_of_composite_update_law}
+				\dot{W}(t) = \Gamma_1 \phi(t) e^T P B - \int_0^t c(t, \tau) \phi(\tau)
+				\epsilon^T(t, \tau) \dd{\tau},
+			\end{equation}
+			where
+			\begin{equation*}
+				\epsilon(t, \tau) = W^T(t) \phi(\tau) - y(\tau).
+			\end{equation*}
+	\end{enumerate}
+\end{observation}
+
+\begin{observation}
+	Consider $c(t, \tau)$ in
+	equation~\eqref{eq:general_form_of_composite_update_law}, 
+	\begin{enumerate}
+		\item \textbf{Standard Least Square Update~\cite{slotine_applied_1991}:} If
+			$c(t, \tau) = \delta(t-\tau)$ where $\delta$ is a Dirac delta function,
+			then the update law is a standard least square form, which requires the
+			PE condition for exponential convergence.
+		\item \textbf{Concurrent Learning~\cite{chowdhary_exponential_2014}:} If
+			$c(t, \tau) = \sum_{i=1}^p \delta(t_i - \tau)$ for $0 \le t_i \le t$,
+			then the update law is a concurrent learning form, which requires the
+			exciting over finite interval condition.
+		\item \textbf{Y. Pan~\cite{pan_composite_2018} and N.
+			Cho~\cite{cho_composite_2018}:} If $c(t, \tau) = \exp(- \int_\tau^{t_i}
+			k(\nu) \dd{\nu})$ for $t_0 \le t_i \le t$, then the update law is the
+			form suggested in, which requires the IE or FE condition.
+	\end{enumerate}
+\end{observation}
+
+
+\section{Motivation}
+
+\begin{itemize}
+	\item \textbf{Without the PE Condition:} The standard least square update is
+		valid only with the PE condition.
+	\item \textbf{Time-Varying Parameters:} Concurrent learning, Y. Pan and N.
+		Cho's algorithms are not suited for time-varying parameter estimation, as
+		it can be stuck in the past time where the minimum singular/eigenvalue are
+		dominant.
+	\item \textbf{Stochastic Estimation:} The standard least square update can
+		deal with the stochastic estimation\sidenote{$\varepsilon(t)$ is a random
+		variable} only when the PE condition is satisfied. Concurrent learning and
+		its variations are sensitive to such noises, as the history stack
+		algorithms are heavily dependent on the singular values.
+	\item \textbf{Smooth Estimation}: Parameter estimation in concurrent
+		learning, Y. Pan and N. Cho's algorithms are not smooth, as the update is
+		piecewise constant in time.
+\end{itemize}
+
+
+\section{Preliminaries}
+
+\begin{theorem}[Weyl, see~\cite{horn_matrix_2012}]
+	Let $A$ and $B$ be n-by-n Hermitian matrix and let the respective eigenvalues
+	of $A$, $B$, and $A+B$ be $\{\lambda_i(A)\}_{i=1}^n$,
+	$\{\lambda_i(B)\}_{i=1}^n$, and $\{\lambda_i(A+B)\}_{i=1}^n$, ordered
+	algebraically as $\lambda_{\max} = \lambda_n \ge \lambda_{n-1} \ge \cdots \ge
+	\lambda_2 \ge \lambda_1 = \lambda_{\min}$. Then,
+	\begin{equation*}
+		\lambda_i(A+B) \le \lambda_{i+j}(A) + \lambda_{n-j}(B)\qc j=0,1,\dotsc,n-i
+	\end{equation*}
+	for each $i=1,\dotsc,n$. Also,
+	\begin{equation*}
+		\lambda_{i-j+1}(A) + \lambda_j(B) \le \lambda_i(A+B)\qc j=1,\dotsc,i
+	\end{equation*}
+	for each $i=1,\dotsc,n$.
+\end{theorem}
+
+\begin{definition}[Additive spread, see~\cite{merikoski_inequalities_2004}]
+	Let $A$ be n-by-n matrix and let the eigenvalues of $A$ be
+	$\{\lambda_i\}_{i=1}^n$. The \textit{additive spread} is defined as 
+	\begin{equation*}
+		\ads A = \operatorname*{max}_{i, j} \abs{\lambda_i -
+		\lambda_j}.
+	\end{equation*}
+\end{definition}
+
+\begin{corollary}[Merikoski, see~\cite{merikoski_inequalities_2004}]
+	Let $A$ and $B$ be Hermitian n-by-n matrices. Then,
+	\begin{equation*}
+		\ads (A+B) \le \ads A + \ads
+	\end{equation*}
+\end{corollary}
+
+\begin{theorem}[Bhatia, see~\cite{bhatia_singular_1990}]
+	Let $A,\ B \in \MC{M}_n(\MB{C})$ be compact operators. Then for $j=1,2,\dotsc$,
+	we have
+	\begin{equation*}
+		2 s_j(A^\ast B) \le s_j(AA^\ast + BB^\ast)
+	\end{equation*}
+	where $s_j(A),\ j=1,2,\dotsc$ denote the singular values of $A$ in increasing
+	order.
+\end{theorem}
+
+
+\section{Problem Formulation}
+
+Consider the second term of \eqref{eq:general_form_of_composite_update_law},
+which can be represented by
+\begin{equation*}
+	\dot{U}(t) = - p_1(t) U(t) + p_2(t) \phi(t) \phi^T(t) \qc U(0) = 0.
+\end{equation*}
+With slight abuse of notations for simplicity, the discrete counterpart can be
+written as
+\begin{equation}\label{eq:discrete_update_law}
+	A^{k+1} = a_k A^k + b_k v_k v_k^T \qc A^0 = 0,
+\end{equation}
+for $a_k \in (0, 1],\ b_k \ge 0$, and $A^k \coloneqq U(t_0 + k \Delta t),\ v_k
+\coloneqq \phi(t_0 + k \Delta t)$.
+
+\newthought{The purpose} is to design $a_k$ and $b_k$
+\begin{enumerate}
+	\item to increase the minimum eigenvalue of $A^k$ as $k$ increases, and
+	\item to bound, simultaneously, the maximum eigenvalue of $A^k$.
+\end{enumerate}
+for given $v_k$ at each step $k$.
+
+
+\section{Main Results}
+
+Let $A$ be an n-by-n positive semidefinite matrix, and $v$ be an
+n-dimensional real vector, and $\{\lambda_i(\cdot)\}$ be the eigenvalues
+of $(\cdot)$ ordered algebraically as $\lambda_{\max} = \lambda_n \ge
+\lambda_{n-1} \ge \cdots \ge \lambda_2 \ge \lambda_1 = \lambda_{\min}$.
+
+Let $\Lambda$ and $X$ be the diagonal matrix of eigenvalues of $A$, and the
+corresponding matrix of eigenvectors, i.e.
+\begin{equation*}
+	A = X \Lambda X^T.
+\end{equation*}
+
+Finally, let
+\begin{equation*}
+	A^\prime = a A + b v v^T,
+\end{equation*}
+which is an abbreviated form of~\eqref{eq:discrete_update_law}.
+
+\begin{lemma}\label{lem:shrinking_ads}
+	If there exist $r \in [0, 1]$ such that
+	\begin{equation}\label{eq:condition_for_ads}
+		a \cdot \ads{A} + b \norm{v}^2 \le r \cdot \ads{A}.
+	\end{equation}
+	for some $a \in (0, r]$ and $b \ge 0$, then,
+	\begin{equation*}
+		\ads{A^\prime} \le r \cdot \ads{A}.
+	\end{equation*}
+\end{lemma}
+
+\begin{proof}
+	From Corollary 2 of~\cite{merikoski_inequalities_2004},
+	\begin{equation*}
+		\begin{aligned}
+			\ads{A^\prime} &= \ads(a A + b v v^T) \\
+										 &\le \ads(a A) + \ads(b v v^T) \\
+										 &= a \ads{A} + b \norm{v}^2 \\
+										 &\le r \cdot \ads{A} \\
+		\end{aligned}
+	\end{equation*}
+\end{proof}
+
+\begin{lemma}\label{lem:mod_bhatia}
+	For all $a, b \ge 0$, and $j=1,\dotsc,n$,
+	\begin{equation*}
+		2 \sqrt{ab} \lambda_j \qty(\Lambda^{1/2} \diag(X^T v)) \le
+		\lambda_j \qty(A^\prime).
+	\end{equation*}
+\end{lemma}
+
+\begin{proof}
+	Observe that $A = X \Lambda^{1/2} (X \Lambda^{1/2})^T$ and $v v^T = X C (X
+	C)^T$ where $C \coloneqq \diag(X^T v)$. From Bhatia's
+	theorem~\cite{bhatia_singular_1990}, we have 
+	\begin{equation*}
+		\begin{aligned}
+			\lambda_j (A^\prime)
+			&= s_j \qty((\sqrt{a} X \Lambda^{1/2})(\sqrt{a} X \Lambda^{1/2})^T +
+			(\sqrt{b} X C)(\sqrt{b} X C)^T) \\
+			&\ge 2 s_j \qty(\sqrt{ab} \Lambda^{1/2} X^T X C) \\
+			&= 2 \sqrt{ab} \lambda_j \qty(\Lambda^{1/2} C).
+		\end{aligned}
+	\end{equation*}
+\end{proof}
+
+\begin{lemma}\label{lem:bounding_lambda_max}
+	For all $a, b \ge 0$,
+	\begin{equation}\label{eq:lambda_max_inequality}
+		2 \sqrt{ab} \norm{\Lambda^{1/2} X^T v}_{\infty} \le
+		\lambda_{\max}(A^\prime) \le a \lambda_{\max}(A) + b \norm{v}^2.
+	\end{equation}
+\end{lemma}
+
+\begin{proof}
+	The right inequality~\eqref{eq:lambda_max_inequality} is directly derived
+	from Weyl's theorem~\cite{horn_matrix_2012} as
+	\begin{equation*}
+		\lambda_n(A^\prime) \le a \lambda_n(A) + b \lambda_n(v v^T),
+	\end{equation*}
+	and the left inequality is from Lemma~\ref{lem:mod_bhatia} for $j = n$. 
+\end{proof}
+	
+Now, we want to derive an algorithm that
+\begin{enumerate}
+	\item increases the minimum eigenvalue,
+		\begin{equation*}
+			\lambda_1 (A^\prime) \ge \lambda_1 (A),
+		\end{equation*}
+	\item and bounding the maximum eigenvalue as
+		\begin{equation*}
+			\lambda_{\max}(A^\prime) \le \lambda_{\max}(A).
+		\end{equation*}
+\end{enumerate}
+
+Given $r$, from Lemma~\ref{lem:shrinking_ads}, we have the following
+condition
+\begin{equation}
+	(\ads{A}) a + \norm{V}^2 b \le r \cdot \ads{A}.
+\end{equation}
+Moreover, from Lemma~\ref{lem:bounding_lambda_max}, we have following two
+conditions
+\begin{equation}
+	\begin{aligned}
+		ab &\ge \frac{\lambda_1(A) + r \cdot \ads{A}}{4 \norm{\Lambda^{1/2} X^T
+		v}_{\infty}^2} \\
+		\lambda_n(A) a + \norm{v}^2 b &\le \lambda_n(A)
+	\end{aligned}
+\end{equation}
+
+\begin{theorem}
+	Let $A$ be an n-by-n positive semidefinite matrix with $\ads{A} > 0$, and $v$
+	be an n-dimensional vector. Also, let $A^\prime = a A + b v v^T$, for $a \in
+	(0, 1]$ and $b \ge 0$. Suppose that there exists $(a, b, r)$ such that
+	\begin{subequations}
+		\begin{gather}
+			a \le r \le 1, \label{eq:thm_cond_sub1} \\
+			\ads{A} \cdot a + \norm{v}^2 b \le \ads{A} \cdot r,
+			\label{eq:thm_cond_sub2} \\
+			a b \le \frac{\qty(\lambda_1(A) + \ads{A} \cdot r)^2}{4
+			\norm{\Lambda^{1/2} X^T v}_{\infty}^2} \label{eq:thm_cond_sub3}
+		\end{gather}
+	\end{subequations}
+	Then,
+	\begin{subequations}
+		\begin{gather}
+			\lambda_{\min}(A^\prime) \ge \lambda_{\min}(A), \\
+			\lambda_{\max}(A^\prime) \le \lambda_{\max}(A).
+		\end{gather}
+	\end{subequations}
+\end{theorem}
+
+\begin{proof}
+	From Lemma~\ref{lem:shrinking_ads}, and Lemma~\ref{lem:bounding_lambda_max},
+	we have
+	\begin{align*}
+		\lambda_1(A^\prime)
+		&\ge \lambda_n(A^\prime) - \ads{A} \cdot r \\
+		&\ge 2 \sqrt{a b} \norm{\Lambda^{1/2} X^T v}_{\infty} - \ads{A} \cdot r.
+	\end{align*}
+	Since $ab$ satisfies the condition~\eqref{eq:thm_cond_sub3}, 
+	$\lambda_1(A^\prime) \ge \lambda_1(A). \label{eq:min_eig_inequality}$
+
+	Now, from the second inequality of Lemma~\eqref{lem:bounding_lambda_max}, and
+	the condition~\eqref{eq:thm_cond_sub1},
+	\begin{equation*}
+		\begin{aligned}
+			\lambda_n(A^\prime)
+			&\le a \lambda_n(A) + b \norm{v}^2 \\
+			&= \ads{A} \cdot a + \norm{v}^2 b + a \lambda_1(A) \\
+			&\le \ads{A} \cdot r + a \lambda_1(A) \\
+			&= r \lambda_n(A) - (r - a) \lambda_1(A)
+		\end{aligned}
+	\end{equation*}
+	From the condition~\eqref{eq:thm_cond_sub2},
+	\begin{align*}
+		\lambda_n(A^\prime)
+	\end{align*}
+\end{proof}
+
+
+\section{Another Approach}
+
+\begin{theorem}[Ipsen, see~\cite{ipsen_refined_2009}]
+	\label{thm:ipsen}
+	Let $A \in \MB{C}^{n \times n}$ be Hermitian, $y \in \MB{C}^n$.
+	\begin{enumerate}
+		\item (smallest eigenvalue). Let
+			\begin{align*}
+				L_{\pm} &\coloneqq \mqty(\lambda_2(A) & 0 \\ 0 & \lambda_1(A)) \pm
+				\mqty(\norm{y_{2:n}} \\ y_1) \mqty(\norm{y_{2:n}} & \bar{y}_1), \\
+				U_{\pm} &\coloneqq \mqty(\lambda_2(A) & 0 \\ 0 & \lambda_1(A)) \pm
+				\mqty(y_2 \\ y_1) \mqty(\bar{y}_2 & \bar{y}_1).
+			\end{align*}
+			Then
+			\begin{equation*}
+				\lmin(L_{\pm}) \le \lmin(A \pm y y^\ast) \le \lmin(U_{\pm}),
+			\end{equation*}
+			where
+			\begin{gather*}
+				\lmin(A) \le \lmin(L_{+}) \le \lmin(U_{+}) \le \lambda_2(A), \\
+				\lmin(A) - \norm{y}^2 \le \lmin(L_{-}) \le \lmin(U_{-}) \le \lmin(A).
+			\end{gather*}
+		\item (largest eigenvalue). Let
+			\begin{align*}
+				L_{\pm} &\coloneqq \mqty(\lambda_n(A) & 0 \\ 0 & \lambda_{n-1}(A)) \pm
+				\mqty(\norm{y_n} \\ y_{n-1}) \mqty(\bar{y}_n & \bar{y}_{n-1}), \\
+				U_{\pm} &\coloneqq \mqty(\lambda_n(A) & 0 \\ 0 & \lambda_{n-1}(A)) \pm
+				\mqty(y_n \\ \norm{y_{1:n-1}}) \mqty(\bar{y}_n & \norm{y_{1:n-1}}).
+			\end{align*}
+			Then
+			\begin{equation*}
+				\lmax(L_{\pm}) \le \lmax(A \pm y y^\ast) \le \lmax(U_{\pm}),
+			\end{equation*}
+			where
+			\begin{gather*}
+				\lmax(A) \le \lmax(L_{+}) \le \lmax(U_{+}) \le \lmax(A)+\norm{y}^2, \\
+				\lambda_{n-1}(A) \le \lmax(L_{-}) \le \lmax(U_{-}) \le \lmax(A).
+			\end{gather*}
+	\end{enumerate}
+\end{theorem}
+
+\begin{lemma}\label{lem:ipsen_eigenvalue_bounds}
+	Let $A \in \MB{C}^{n \times n}$ be Hermitian, $v \in \MB{C}^n$, and $A^\prime
+	\coloneqq a A + b v v^T$ for $a, b \ge 0$. Then,
+	\begin{fullwidth}
+		\begin{equation}
+			\lambda_{\min}(A^\prime)
+			\ge a \lambda_1(A) + \frac{1}{2} \qty(a \gap_1(A) + b \norm{v}^2 -
+			\sqrt{\qty(a \gap_1(A) + b \norm{v}^2)^2 - 4 a b \gap_1(A) \abs{v_1}^2}),
+		\end{equation}
+		and
+		\begin{equation}
+			\lambda_{\max}(A^\prime)
+			\le a \lambda_n(A) + \frac{1}{2} \qty(- a \gap_n(A) + b \norm{v}^2 
+			+ \sqrt{\qty(a \gap_n(A) + b \norm{v}^2)^2 - 4 a b \gap_n(A)
+			\abs{v_{1:n-1}}^2}),
+		\end{equation}
+	\end{fullwidth}
+	\end{lemma}
+
+\begin{proof}
+	With the fact that $\lambda_i(a A) = a \lambda_i(A)$, and $\gap_i(a A) = a
+	\gap_i(A)$, the proof directly follows Theorem 2.1, and Corollary 2.2
+	of~\cite{ipsen_refined_2009}.
+\end{proof}
+
+For simplicity, we abbreviate $\lambda_i \coloneqq \lambda_i(A)$, and $\gap_i
+\coloneqq \gap_i(A)$.  Define a function $f : \MB{R}_{+} \times
+\MB{R}_{+} \to \MB{R}_{+}$, such that
+\begin{equation}\label{eq:function_of_lmin_lbound}
+	f(a,b) \coloneqq
+	a \lambda_1 + \frac{1}{2} \qty(a \gap_1 + b \norm{v}^2 - \sqrt{\qty(a
+	\gap_1 + b \norm{v}^2)^2 - 4 ab \gap_1 \abs{v_1}^2}).
+\end{equation}
+
+\begin{lemma}
+	$f(a, b)$ is a monotonically increasing function for each $a \ge 0$ and $b
+	\ge 0$.
+
+	Moreover, given $a$,
+	\begin{equation*}
+		\lim_{b \to \infty} f(a, b) = a \qty(\lambda_1(A) + \gap_1(A)
+		\frac{\abs{v_1}^2}{\norm{v}^2}).
+	\end{equation*}
+\end{lemma}
+
+\begin{lemma}
+	Suppose that there exist $a, b \ge 0$, such that $f(a, b) \ge
+	\lambda_1(A)$. Then
+	\begin{equation}\label{eq:neccessary_cond_for_a}
+		a \ge \frac{\lambda_1(A)}{\lambda_2(A)}.
+	\end{equation}
+\end{lemma}
+
+\begin{theorem}
+	Suppose that there exist $a \in (0, 1]$ and $b \ge 0$ satisfying the
+	following two hyperbolic inequalities
+	\begin{align}
+		a^2 + \frac{k_1 \norm{v}^2}{\lambda_1} a b - \frac{2 \lambda_1  +
+		\gap_1}{\lambda_1 + \gap_1} a - \frac{\norm{v}^2}{\lambda_1 + \gap_1} b +
+		\frac{\lambda_1}{\lambda_1 + \gap_1} &\ge 0, \\
+		a^2 + \frac{k_n \norm{v}^2}{\lambda_n} a b - \frac{2 \lambda_n -
+		\gap_n}{\lambda_n - \gap_n} a - \frac{\norm{v}^2}{\lambda_n - \gap_n} b +
+		\frac{\lambda_n}{\lambda_n - \gap_n} &\ge 0,
+	\end{align}
+	where
+	\begin{align*}
+		\frac{\lambda_1}{\lambda_1 + \gap_1}
+		\le k_1 &\coloneqq \frac{ \lambda_1 + \frac{\abs{v_1}^2}{\norm{v}^2}
+		\gap_1}{\lambda_1 + \gap_1}
+		\le 1, \\
+		1 \le k_n &\coloneqq \frac{\lambda_n - \frac{\abs{v_n}^2}{\norm{v}^2}\gap_n
+		}{\lambda_n - \gap_n}
+		\le \frac{\lambda_n}{\lambda_n - \gap_n}.
+	\end{align*}
+	Then,
+	\begin{align}
+		\lambda_{\min}(a A + b v v^T) &\ge \lambda_{\min}(A), \\
+		\lambda_{\max}(a A + b v v^T) &\le \lambda_{\max}(A).
+	\end{align}
+\end{theorem}
+
+\begin{proof}
+	The proof is direct result from Lemma~\ref{lem:ipsen_eigenvalue_bounds},
+\end{proof}
+
+\begin{corollary}
+	Suppose that $v \in \MB{R}^n$ satisfies
+	\begin{equation}
+		\frac{\abs{v_1}^2}{\lambda_{\min}(A)} >
+		\frac{\abs{v_n}^2}{\lambda_{\max}(A)}.
+	\end{equation}
+	Then, there exist $a \in (0, 1)$ and $b > 0$ such that
+	\begin{align}
+		\lambda_{\min}(a A + b v v^T) &> \lambda_{\min}(A), \\
+		\lambda_{\max}(a A + b v v^T) &< \lambda_{\max}(A).
+	\end{align}
+\end{corollary}
+
+\begin{proof}
+	Let $f_1,\ f_n : [0, 1] \times \MB{R}_{+} \to \MB{R}$ be
+	\begin{align*}
+		f_1(a,b) &\coloneqq a^2 + \frac{k_1 \norm{v}^2}{\lambda_1} a b - \frac{2
+		\lambda_1  + \gap_1}{\lambda_1 + \gap_1} a - \frac{\norm{v}^2}{\lambda_1 +
+		\gap_1} b + \frac{\lambda_1}{\lambda_1 + \gap_1}, \\
+		f_n(a,b) &\coloneqq a^2 + \frac{k_n \norm{v}^2}{\lambda_n} a b - \frac{2
+		\lambda_n - \gap_n}{\lambda_n - \gap_n} a - \frac{\norm{v}^2}{\lambda_n -
+		\gap_n} b + \frac{\lambda_n}{\lambda_n - \gap_n}.
+	\end{align*}
+	Note that $f_1(1, 0) = f_n(c/\lambda_n, 0) = 0$, and
+	\begin{align*}
+		\grad{f_1}(1, 0) &= \frac{\gap_1}{\lambda_1 + \gap_1} \mqty[1 &
+		\frac{\abs{v_1}^2}{\lambda_1}]^T, \\
+		\grad{f_n}(1, 0) &= - \frac{\gap_n}{\lambda_n - \gap_n} \mqty[1 &
+		\frac{\abs{v_n}^2}{\lambda_n}]^T.
+	\end{align*}
+	There exists a region $\MC{D} \subset [0,1] \times \MB{R}_{+}$ satisfying
+	both $f_1(a, b) > 0$ and $f_n(a, b) > 0$ for $(a,b) \in \MC{D}$, if only 
+	\begin{equation*}
+		\grad{f_1}(1, 0) \times \grad{f_n}(1, 0)
+		= \frac{\gap_1 \gap_n}{(\lambda_1 + \gap_1)(\lambda_n - \gap_n)}
+		\qty(\frac{\abs{v_1}^2}{\lambda_1} - \frac{\abs{v_n}^2}{\lambda_n}) > 0,
+	\end{equation*}
+	which completes the proof.
+\end{proof}
+
+
+\section{Analytic Solution}
+
+
+
+
+
+ 
+
+For $\lambda_{\min}(A^\prime) \ge \lambda_1$ for all $v$, the following
+conditions are necessary:
+\begin{fullwidth}
+	\begin{gather}
+		\qty((a \lambda_2 - \lambda_1) \abs{v_1}^2 - (1-a) \lambda_1
+		\norm{v_{2:n}}^2) b - (1-a) (a \lambda_2 - \lambda_1) \lambda_1 \ge 0, \\
+		a = 1 \qc \forall v \quad \text{s.t.} \quad v_1 = 0.
+	\end{gather}
+\end{fullwidth}
+asf
+\begin{gather*}
+	\qty(a \ads_1 + b \norm{v}^2)^2 - 4 ab \ads_1 \abs{v_1}^2
+	\le \qty(\qty(a \ads_1 + b \norm{v}^2) - 2 (1-a) \lambda_1)^2 \\
+	- 4 ab \ads_1 \abs{v_1}^2
+	\le - 4 (1-a) \lambda_1 \qty(a \ads_1 + b \norm{v}^2) + 4 (1-a)^2
+	\lambda_1^2 \\
+	\qty(a \ads_1 \abs{v_1}^2 - (1-a) \lambda_1 \norm{v}^2) b
+	- (1-a) \lambda_1 \ads_1 a + (1-a)^2 \lambda_1^2 \ge 0
+\end{gather*}
+
+
+\bibliographystyle{plain}
+\bibliography{../global.bib}
+
+\end{document}
