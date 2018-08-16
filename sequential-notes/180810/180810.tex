@@ -162,18 +162,36 @@ where $y(t)$ is measured using
 
 \section{Problem Formulation}
 
-Consider the second term of \eqref{eq:general_form_of_composite_update_law},
-which can be represented by
+In \eqref{eq:general_form_of_composite_update_law}, let
 \begin{equation*}
-	\dot{U}(t) = - p_1(t) U(t) + p_2(t) \phi(t) \phi^T(t) \qc U(0) = 0.
+	\MC{A}(t) = - \int_0^t c(t, \tau) \phi(\tau) \phi^T(\tau) \dd{\tau},
 \end{equation*}
+whose derivative is
+\begin{equation*}
+	\dot{\MC{A}}(t) = - \int_0^t \pdv{t} c(t, \tau) \phi(\tau) \phi^T(\tau)
+	\dd{\tau} - c(t, t) \phi(t) \phi^T(t) \qc \MC{A}(0) = 0.
+\end{equation*}
+To deliberately consider a forgetting factor, let $c(t, \tau)$ be
+\begin{equation*}
+	c(t, \tau) = \beta(\tau) \exp(- \int_\tau^t \alpha(\nu) \dd{\nu}),
+\end{equation*}
+for $\alpha: \MB{R}_{+} \to \MB{R}$ and $\beta: \MB{R}_{+} \to \MB{R}$,
+which leads to 
+\begin{equation*}
+	\dot{\MC{A}}(t) = - \alpha(t) \MC{A}(t) - \beta(t) \phi(t) \phi^T(t) \qc
+	\MC{A}(0) = 0.
+\end{equation*}
+
+Note that there are no constraints for $\alpha$ and $\beta$, if they guarantee
+the BIBO stability.\sidenote{Need references}
+
 With slight abuse of notations for simplicity, the discrete counterpart can be
 written as
 \begin{equation}\label{eq:discrete_update_law}
 	A^{k+1} = a_k A^k + b_k v_k v_k^T \qc A^0 = 0,
 \end{equation}
-for $a_k \in (0, 1],\ b_k \ge 0$, and $A^k \coloneqq U(t_0 + k \Delta t),\ v_k
-\coloneqq \phi(t_0 + k \Delta t)$.
+for $a_k > 0,\ b_k \in \MB{R}$, where $A^k \coloneqq \MC{A}(k \Delta t)$, and $v_k
+\coloneqq \phi(k \Delta t)$.
 
 \newthought{The purpose} is to design $a_k$ and $b_k$
 \begin{enumerate}
@@ -181,169 +199,6 @@ for $a_k \in (0, 1],\ b_k \ge 0$, and $A^k \coloneqq U(t_0 + k \Delta t),\ v_k
 	\item to bound, simultaneously, the maximum eigenvalue of $A^k$.
 \end{enumerate}
 for given $v_k$ at each step $k$.
-
-
-\section{Main Results}
-
-Let $A$ be an n-by-n positive semidefinite matrix, and $v$ be an
-n-dimensional real vector, and $\{\lambda_i(\cdot)\}$ be the eigenvalues
-of $(\cdot)$ ordered algebraically as $\lambda_{\max} = \lambda_n \ge
-\lambda_{n-1} \ge \cdots \ge \lambda_2 \ge \lambda_1 = \lambda_{\min}$.
-
-Let $\Lambda$ and $X$ be the diagonal matrix of eigenvalues of $A$, and the
-corresponding matrix of eigenvectors, i.e.
-\begin{equation*}
-	A = X \Lambda X^T.
-\end{equation*}
-
-Finally, let
-\begin{equation*}
-	A^\prime = a A + b v v^T,
-\end{equation*}
-which is an abbreviated form of~\eqref{eq:discrete_update_law}.
-
-\begin{lemma}\label{lem:shrinking_ads}
-	If there exist $r \in [0, 1]$ such that
-	\begin{equation}\label{eq:condition_for_ads}
-		a \cdot \ads{A} + b \norm{v}^2 \le r \cdot \ads{A}.
-	\end{equation}
-	for some $a \in (0, r]$ and $b \ge 0$, then,
-	\begin{equation*}
-		\ads{A^\prime} \le r \cdot \ads{A}.
-	\end{equation*}
-\end{lemma}
-
-\begin{proof}
-	From Corollary 2 of~\cite{merikoski_inequalities_2004},
-	\begin{equation*}
-		\begin{aligned}
-			\ads{A^\prime} &= \ads(a A + b v v^T) \\
-										 &\le \ads(a A) + \ads(b v v^T) \\
-										 &= a \ads{A} + b \norm{v}^2 \\
-										 &\le r \cdot \ads{A} \\
-		\end{aligned}
-	\end{equation*}
-\end{proof}
-
-\begin{lemma}\label{lem:mod_bhatia}
-	For all $a, b \ge 0$, and $j=1,\dotsc,n$,
-	\begin{equation*}
-		2 \sqrt{ab} \lambda_j \qty(\Lambda^{1/2} \diag(X^T v)) \le
-		\lambda_j \qty(A^\prime).
-	\end{equation*}
-\end{lemma}
-
-\begin{proof}
-	Observe that $A = X \Lambda^{1/2} (X \Lambda^{1/2})^T$ and $v v^T = X C (X
-	C)^T$ where $C \coloneqq \diag(X^T v)$. From Bhatia's
-	theorem~\cite{bhatia_singular_1990}, we have 
-	\begin{equation*}
-		\begin{aligned}
-			\lambda_j (A^\prime)
-			&= s_j \qty((\sqrt{a} X \Lambda^{1/2})(\sqrt{a} X \Lambda^{1/2})^T +
-			(\sqrt{b} X C)(\sqrt{b} X C)^T) \\
-			&\ge 2 s_j \qty(\sqrt{ab} \Lambda^{1/2} X^T X C) \\
-			&= 2 \sqrt{ab} \lambda_j \qty(\Lambda^{1/2} C).
-		\end{aligned}
-	\end{equation*}
-\end{proof}
-
-\begin{lemma}\label{lem:bounding_lambda_max}
-	For all $a, b \ge 0$,
-	\begin{equation}\label{eq:lambda_max_inequality}
-		2 \sqrt{ab} \norm{\Lambda^{1/2} X^T v}_{\infty} \le
-		\lambda_{\max}(A^\prime) \le a \lambda_{\max}(A) + b \norm{v}^2.
-	\end{equation}
-\end{lemma}
-
-\begin{proof}
-	The right inequality~\eqref{eq:lambda_max_inequality} is directly derived
-	from Weyl's theorem~\cite{horn_matrix_2012} as
-	\begin{equation*}
-		\lambda_n(A^\prime) \le a \lambda_n(A) + b \lambda_n(v v^T),
-	\end{equation*}
-	and the left inequality is from Lemma~\ref{lem:mod_bhatia} for $j = n$. 
-\end{proof}
-	
-Now, we want to derive an algorithm that
-\begin{enumerate}
-	\item increases the minimum eigenvalue,
-		\begin{equation*}
-			\lambda_1 (A^\prime) \ge \lambda_1 (A),
-		\end{equation*}
-	\item and bounding the maximum eigenvalue as
-		\begin{equation*}
-			\lambda_{\max}(A^\prime) \le \lambda_{\max}(A).
-		\end{equation*}
-\end{enumerate}
-
-Given $r$, from Lemma~\ref{lem:shrinking_ads}, we have the following
-condition
-\begin{equation}
-	(\ads{A}) a + \norm{V}^2 b \le r \cdot \ads{A}.
-\end{equation}
-Moreover, from Lemma~\ref{lem:bounding_lambda_max}, we have following two
-conditions
-\begin{equation}
-	\begin{aligned}
-		ab &\ge \frac{\lambda_1(A) + r \cdot \ads{A}}{4 \norm{\Lambda^{1/2} X^T
-		v}_{\infty}^2} \\
-		\lambda_n(A) a + \norm{v}^2 b &\le \lambda_n(A)
-	\end{aligned}
-\end{equation}
-
-\begin{theorem}
-	Let $A$ be an n-by-n positive semidefinite matrix with $\ads{A} > 0$, and $v$
-	be an n-dimensional vector. Also, let $A^\prime = a A + b v v^T$, for $a \in
-	(0, 1]$ and $b \ge 0$. Suppose that there exists $(a, b, r)$ such that
-	\begin{subequations}
-		\begin{gather}
-			a \le r \le 1, \label{eq:thm_cond_sub1} \\
-			\ads{A} \cdot a + \norm{v}^2 b \le \ads{A} \cdot r,
-			\label{eq:thm_cond_sub2} \\
-			a b \le \frac{\qty(\lambda_1(A) + \ads{A} \cdot r)^2}{4
-			\norm{\Lambda^{1/2} X^T v}_{\infty}^2} \label{eq:thm_cond_sub3}
-		\end{gather}
-	\end{subequations}
-	Then,
-	\begin{subequations}
-		\begin{gather}
-			\lambda_{\min}(A^\prime) \ge \lambda_{\min}(A), \\
-			\lambda_{\max}(A^\prime) \le \lambda_{\max}(A).
-		\end{gather}
-	\end{subequations}
-\end{theorem}
-
-\begin{proof}
-	From Lemma~\ref{lem:shrinking_ads}, and Lemma~\ref{lem:bounding_lambda_max},
-	we have
-	\begin{align*}
-		\lambda_1(A^\prime)
-		&\ge \lambda_n(A^\prime) - \ads{A} \cdot r \\
-		&\ge 2 \sqrt{a b} \norm{\Lambda^{1/2} X^T v}_{\infty} - \ads{A} \cdot r.
-	\end{align*}
-	Since $ab$ satisfies the condition~\eqref{eq:thm_cond_sub3}, 
-	$\lambda_1(A^\prime) \ge \lambda_1(A). \label{eq:min_eig_inequality}$
-
-	Now, from the second inequality of Lemma~\eqref{lem:bounding_lambda_max}, and
-	the condition~\eqref{eq:thm_cond_sub1},
-	\begin{equation*}
-		\begin{aligned}
-			\lambda_n(A^\prime)
-			&\le a \lambda_n(A) + b \norm{v}^2 \\
-			&= \ads{A} \cdot a + \norm{v}^2 b + a \lambda_1(A) \\
-			&\le \ads{A} \cdot r + a \lambda_1(A) \\
-			&= r \lambda_n(A) - (r - a) \lambda_1(A)
-		\end{aligned}
-	\end{equation*}
-	From the condition~\eqref{eq:thm_cond_sub2},
-	\begin{align*}
-		\lambda_n(A^\prime)
-	\end{align*}
-\end{proof}
-
-
-\section{Another Approach}
 
 \begin{theorem}[Ipsen, see~\cite{ipsen_refined_2009}]
 	\label{thm:ipsen}
@@ -384,9 +239,43 @@ conditions
 	\end{enumerate}
 \end{theorem}
 
+
+\section{Main Results}
+
+Let $A$ be an n-by-n positive semidefinite matrix, and $v$ be an
+n-dimensional real vector, and $\{\lambda_i(\cdot)\}$ be the eigenvalues
+of $(\cdot)$ ordered algebraically as $\lambda_{\max} = \lambda_n \ge
+\lambda_{n-1} \ge \cdots \ge \lambda_2 \ge \lambda_1 = \lambda_{\min}$.
+
+Let $\Lambda$ and $V$ be the diagonal matrix of eigenvalues of $A$, and the
+corresponding matrix of eigenvectors, i.e.
+\begin{equation*}
+	A = V \Lambda V^T.
+\end{equation*}
+Also, let
+\begin{equation*}
+	A^\prime = a A + b v v^T,
+\end{equation*}
+which is an abbreviated form of~\eqref{eq:discrete_update_law}.
+	
+Now, we want to derive an algorithm that
+\begin{enumerate}
+	\item increases the minimum eigenvalue,
+		\begin{equation*}
+			\lambda_1 (A^\prime) \ge \lambda_1 (A),
+		\end{equation*}
+	\item and bounding the maximum eigenvalue as
+		\begin{equation*}
+			\lambda_{\max}(A^\prime) \le \lambda_{\max}(A).
+		\end{equation*}
+\end{enumerate}
+
+
+\section{Main Results}
+
 \begin{lemma}\label{lem:ipsen_eigenvalue_bounds}
 	Let $A \in \MB{C}^{n \times n}$ be Hermitian, $v \in \MB{C}^n$, and $A^\prime
-	\coloneqq a A + b v v^T$ for $a, b \ge 0$. Then,
+	\coloneqq a A + b v v^T$ for $a > 0$ and $ b \in \MB{R}$. Then,
 	\begin{fullwidth}
 		\begin{equation}
 			\lambda_{\min}(A^\prime)
@@ -419,8 +308,8 @@ For simplicity, we abbreviate $\lambda_i \coloneqq \lambda_i(A)$, and $\gap_i
 \end{equation}
 
 \begin{lemma}
-	$f(a, b)$ is a monotonically increasing function for each $a \ge 0$ and $b
-	\ge 0$.
+	$f(a, b)$ is a monotonically increasing function for each $a > 0$ and $b
+	\in \MB{R}$.
 
 	Moreover, given $a$,
 	\begin{equation*}
@@ -437,74 +326,113 @@ For simplicity, we abbreviate $\lambda_i \coloneqq \lambda_i(A)$, and $\gap_i
 	\end{equation}
 \end{lemma}
 
+Given $A \in \MB{S}^{n \times n}$, and $v \in \MB{R}^n$, let $f_1 :
+\MB{R}_{+} \times \MB{R} \times \MB{R} \to \MB{R}$ be
+\begin{equation*}
+	f_1(a, b; c) \coloneqq a^2 + \frac{k_1 \norm{v}^2}{\lambda_1} a b -
+	\frac{\lambda_1 + \lambda_2}{\lambda_1 \lambda_2} a c -
+	\frac{\norm{v}^2}{\lambda_1 \lambda_2} b c +
+	\frac{1}{\lambda_1 \lambda_2} c^2,
+\end{equation*}
+where
+\begin{gather*}
+	a + \frac{\norm{v}^2}{\lambda_1 + \lambda_2} b - \frac{2 c}{\lambda_1
+	+ \lambda_2} \ge 0,\\
+	\frac{\lambda_1}{\lambda_2} \le k_1 \coloneqq \frac{\lambda_1}{\lambda_2} +
+	\frac{\abs{v_1}^2}{\norm{v}^2} \qty(1 - \frac{\lambda_1}{\lambda_2}) \le 1.
+\end{gather*}
+Also, let $f_n : \MB{R}_{+} \times \MB{R} \times \MB{R} \to \MB{R}$
+\begin{equation*}
+	f_n(a, b; c) \coloneqq a^2 + \frac{k_n \norm{v}^2}{\lambda_n} a b -
+	\frac{\lambda_n + \lambda_{n-1}}{\lambda_n \lambda_{n-1}} a c -
+	\frac{\norm{v}^2}{\lambda_n \lambda_{n-1}} b c + \frac{1}{\lambda_n
+	\lambda_{n-1}} c^2,
+\end{equation*}
+where
+\begin{gather*}
+	a + \frac{\norm{v}^2}{\lambda_n + \lambda_{n-1}} b - \frac{2 c}{\lambda_n +
+	\lambda_{n-1}} \le 0, \\
+	1 \le k_n \coloneqq \frac{\lambda_n}{\lambda_{n-1}} -
+	\frac{\abs{v_n}^2}{\norm{v}^2} \qty(\frac{\lambda_n}{\lambda_{n-1}} - 1) \le
+	\frac{\lambda_n}{\lambda_{n-1}}.
+\end{gather*}
+
 \begin{theorem}
-	Suppose that there exist $a \in (0, 1]$ and $b \ge 0$ satisfying the
-	following two hyperbolic inequalities
-	\begin{align}
-		a^2 + \frac{k_1 \norm{v}^2}{\lambda_1} a b - \frac{2 \lambda_1  +
-		\gap_1}{\lambda_1 + \gap_1} a - \frac{\norm{v}^2}{\lambda_1 + \gap_1} b +
-		\frac{\lambda_1}{\lambda_1 + \gap_1} &\ge 0, \\
-		a^2 + \frac{k_n \norm{v}^2}{\lambda_n} a b - \frac{2 \lambda_n -
-		\gap_n}{\lambda_n - \gap_n} a - \frac{\norm{v}^2}{\lambda_n - \gap_n} b +
-		\frac{\lambda_n}{\lambda_n - \gap_n} &\ge 0,
-	\end{align}
-	where
-	\begin{align*}
-		\frac{\lambda_1}{\lambda_1 + \gap_1}
-		\le k_1 &\coloneqq \frac{ \lambda_1 + \frac{\abs{v_1}^2}{\norm{v}^2}
-		\gap_1}{\lambda_1 + \gap_1}
-		\le 1, \\
-		1 \le k_n &\coloneqq \frac{\lambda_n - \frac{\abs{v_n}^2}{\norm{v}^2}\gap_n
-		}{\lambda_n - \gap_n}
-		\le \frac{\lambda_n}{\lambda_n - \gap_n}.
-	\end{align*}
-	Then,
-	\begin{align}
-		\lambda_{\min}(a A + b v v^T) &\ge \lambda_{\min}(A), \\
-		\lambda_{\max}(a A + b v v^T) &\le \lambda_{\max}(A).
-	\end{align}
+	\begin{enumerate}
+		\item Suppose that there exist $a>0, b, c \in \MB{R}$ satisfying
+			$f_1(a, b; c) \ge 0$. Then, $\lambda_{\min}(a A + b v v^T) \ge c$.
+		\item Also, if $f_n(a, b; c) \ge 0$, then, $\lambda_{\max}(a A + b v
+			v^T) \le c$.
+		\end{enumerate}
 \end{theorem}
 
 \begin{proof}
 	The proof is direct result from Lemma~\ref{lem:ipsen_eigenvalue_bounds},
 \end{proof}
 
-\begin{corollary}
-	Suppose that $v \in \MB{R}^n$ satisfies
-	\begin{equation}
-		\frac{\abs{v_1}^2}{\lambda_{\min}(A)} >
-		\frac{\abs{v_n}^2}{\lambda_{\max}(A)}.
-	\end{equation}
-	Then, there exist $a \in (0, 1)$ and $b > 0$ such that
-	\begin{align}
-		\lambda_{\min}(a A + b v v^T) &> \lambda_{\min}(A), \\
-		\lambda_{\max}(a A + b v v^T) &< \lambda_{\max}(A).
-	\end{align}
-\end{corollary}
+\begin{remark}
+	\begin{enumerate}
+		\item If $\gap_1 = 0$, then $k_1 = 1$, and $f_1(a, b, c) \ge 0$ reads
+			\begin{gather*}
+				f_1(a, b; c) = \qty(a - \frac{c}{\lambda_1}) \qty(a +
+				\frac{\norm{v}^2}{\lambda_1} b - \frac{c}{\lambda_1}) \ge 0, \\
+				a + \frac{\norm{v}^2}{2 \lambda_1} b - \frac{c}{\lambda_1} \ge 0.
+			\end{gather*}
+		\item If $\gap_n = 0$, then $k_n = 1$, and $f_n(a, b, c) \ge 0$ reads
+			\begin{gather*}
+				f_n(a, b; c) = \qty(a - \frac{c}{\lambda_n}) \qty(a +
+				\frac{\norm{v}^2}{\lambda_n} b - \frac{c}{\lambda_n}) \ge 0, \\
+				a + \frac{\norm{v}^2}{2 \lambda_n} b - \frac{c}{\lambda_n} \le 0.
+			\end{gather*}
+	\end{enumerate}
+\end{remark}
+
+\begin{remark}
+	Note that $f_1(c_1/\lambda_1, 0; c_1) = f_n(c_n/\lambda_n, 0; c_n) = 0$ for
+	all $c_1, c_2 \in \MB{R}$.
+\end{remark}
+
+\begin{lemma}
+	Let $A \in \MB{S}^{n \times n}$ and $v \in \MB{R}^n$. Then, for all $c_1, c_n
+	\in \MB{R}$ such that
+	\begin{equation*}
+		\frac{c_1}{\lambda_1} \le \frac{c_n}{\lambda_n},
+	\end{equation*}
+	there exist $a>0, b \in \MB{R}$ satisfying $c_1 \le \lambda_i(a A + b v v^T)
+	\le c_2$, for $i = 1, \dotsc, n$.
+\end{lemma}
+
+\begin{theorem}
+	Let $A \in \MB{S}^{n \times n}$ and $v \in \MB{R}^n$. Suppose that 
+	\begin{gather}
+		\frac{\abs{v_1}^2}{\lambda_{\min}(A)} \ne
+		\frac{\abs{v_n}^2}{\lambda_{\max}(A)}, \\
+		\gap_1, \gap_n \ne 0.
+	\end{gather}
+	Then, there exist $a > 0$ and $b \in \MB{R}$ such that
+	\begin{equation*}
+		c_1 < \lambda_i(a A + b v v^T) < c_n,
+	\end{equation*}
+	for all $c_1, c_2$ such that $c_1/\lambda_1 \le c_n/\lambda_n$.
+\end{theorem}
 
 \begin{proof}
-	Let $f_1,\ f_n : [0, 1] \times \MB{R}_{+} \to \MB{R}$ be
+	Note that $f_1(c_1/\lambda_1, 0; c_1) = f_n(c_n/\lambda_n, 0; c_n) = 0$, and
 	\begin{align*}
-		f_1(a,b) &\coloneqq a^2 + \frac{k_1 \norm{v}^2}{\lambda_1} a b - \frac{2
-		\lambda_1  + \gap_1}{\lambda_1 + \gap_1} a - \frac{\norm{v}^2}{\lambda_1 +
-		\gap_1} b + \frac{\lambda_1}{\lambda_1 + \gap_1}, \\
-		f_n(a,b) &\coloneqq a^2 + \frac{k_n \norm{v}^2}{\lambda_n} a b - \frac{2
-		\lambda_n - \gap_n}{\lambda_n - \gap_n} a - \frac{\norm{v}^2}{\lambda_n -
-		\gap_n} b + \frac{\lambda_n}{\lambda_n - \gap_n}.
-	\end{align*}
-	Note that $f_1(1, 0) = f_n(c/\lambda_n, 0) = 0$, and
-	\begin{align*}
-		\grad{f_1}(1, 0) &= \frac{\gap_1}{\lambda_1 + \gap_1} \mqty[1 &
-		\frac{\abs{v_1}^2}{\lambda_1}]^T, \\
-		\grad{f_n}(1, 0) &= - \frac{\gap_n}{\lambda_n - \gap_n} \mqty[1 &
+		\grad{f_1}(c_1/\lambda_1, 0; c_1) &= \frac{c_1 \gap_1}{\lambda_1 \lambda_2}
+		\mqty[1 & \frac{\abs{v_1}^2}{\lambda_1}]^T, \\
+		\grad{f_n}(c_n/\lambda_n, 0; c_n) &= - \frac{c_n \gap_n}{\lambda_n
+		\lambda_{n-1}} \mqty[1 &
 		\frac{\abs{v_n}^2}{\lambda_n}]^T.
 	\end{align*}
-	There exists a region $\MC{D} \subset [0,1] \times \MB{R}_{+}$ satisfying
-	both $f_1(a, b) > 0$ and $f_n(a, b) > 0$ for $(a,b) \in \MC{D}$, if only 
+	Since $f_1(a, b; c_1) = 0$ and $f_n(a, b; c_n) = 0$ intersect the point
+	$(a,b) = (c_1/\lambda_1, 0)$, and $(a, b) = (c_n/\lambda_n, 0)$,
+	respectively, there exists a region $\MC{D} \subset \MB{R}_{+} \times
+	\MB{R}$ satisfying both $f_1(a, b; c_1) > 0$ and $f_n(a, b; c_n) > 0$ for
+	$(a,b) \in \MC{D}$, if only 
 	\begin{equation*}
-		\grad{f_1}(1, 0) \times \grad{f_n}(1, 0)
-		= \frac{\gap_1 \gap_n}{(\lambda_1 + \gap_1)(\lambda_n - \gap_n)}
-		\qty(\frac{\abs{v_1}^2}{\lambda_1} - \frac{\abs{v_n}^2}{\lambda_n}) > 0,
+		\grad{f_1}(c_1/\lambda_1, 0; c_1) \times \grad{f_n}(c_n/\lambda_n, 0; c_n)
+		\ne 0,
 	\end{equation*}
 	which completes the proof.
 \end{proof}

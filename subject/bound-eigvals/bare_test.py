@@ -38,7 +38,7 @@ def find_maxr():
         s = scipy.optimize.minimize_scalar(
             lambda s: - findr(s),
             method='bounded',
-            bounds=(-np.pi/2 + s0 + 1e-7, max_s))
+            bounds=(- np.pi/2 + s0 + 1e-7, np.pi/2 + s0 - 1e-7))
         res = np.clip(s.x, -1e-2, None)
 
     # print(res)
@@ -87,7 +87,7 @@ for i in range(10000):
     # p = np.sqrt((1 - 1/kn) * ln / (ln - gn)**2 * (gn - (1 - 1/kn) * ln))
     p = lmax / ln * np.sqrt((1 - 1/kn) * ln / (ln - gn)
                             * (ln / kn / (ln - gn) - 1))
-    s0 = np.arctan(1/p * lmax/ln * (2 * (1 - 1/kn) * ln - gn) / 2 / (ln - gn))
+    s0 = np.arctan2(lmax/ln * (2 * (1 - 1/kn) * ln - gn) / 2 / (ln - gn), p)
 
     a, b = findab(find_maxr())
     # print(a, b)
