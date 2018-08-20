@@ -14,7 +14,7 @@ class System():
         self.unc = Uncertainty(args)
 
     def reset(self):
-        return np.zeros(2)
+        return self.args.xinit
 
     def step(self, t, x, u):
         args = self.args
@@ -23,6 +23,7 @@ class System():
             args.A.dot(x[:, np.newaxis])
             + args.B.dot(self.unc.Lambda).dot(
                 (u + self.unc.delta(x))[:, np.newaxis])
+            + args.Br.dot(self.command(t)[:, np.newaxis])
         ).ravel()
 
         return next_x
@@ -34,18 +35,10 @@ class Uncertainty():
         self.Lambda = args.Lambda
 
     def basis(self, x):
-        return np.hstack((x, np.abs(x)*x[1], x[0]**3))
+        return np.hstack((x[:2], np.abs(x[:2])*x[1], x[0]**3))
 
     def delta(self, x):
         return self.W.T.dot(self.basis(x))
-
-
-class DirectMrac():
-    def __init__(self, system):
-        self.basis = system.unc.basis
-        self.args = system.args
-
-        self.P = sla.solve_lyapunov(self.args.A.T, self.args.Q_lyap)
 
 
 class Cmrac():
@@ -55,30 +48,33 @@ class Cmrac():
 
         self.P = sla.solve_lyapunov(self.args.A.T, -self.args.Q_lyap)
         self.Bhat = sla.pinv(args.B)
+        self.system = system
 
     def reset(self):
         args = self.args
 
+        x = self.system.reset()
+        xr = x.copy()
+        what = np.zeros((args.ndim_basis, args.ndim_input))
+        e = x - xr
+        z = (what.T.dot(self.basis(x))[:, np.newaxis]
+             - self.Bhat.dot(np.eye(args.ndim_state)/args.tau_f + args.A).dot(
+                 e[:, np.newaxis])).ravel()
+
         return Arguments(
-            xr=np.zeros(args.ndim_state),
-            what=np.zeros((args.ndim_basis, args.ndim_input)),
-            phif=np.zeros(args.ndim_basis),
-            z=np.zeros(args.ndim_input),
+            xr=xr,
+            what=what,
+            phif=self.basis(np.zeros(args.ndim_state)),
+            z=z,
             basissum=np.zeros((args.ndim_basis, args.ndim_basis)),
             estsum=np.zeros((args.ndim_basis, args.ndim_input)),
-            a=1, b=0,
+            a=0, b=1,
         )
 
     def get_inputs(self, t, x, uvar):
-        args = self.args
-
         what = uvar.what
-        c = self.command(t)
-
-        u_n = args.Kr.dot(c)
         u_a = - what.T.dot(self.basis(x))
-
-        return u_n + u_a
+        return u_a
 
     def get_ua(self, t, x, uvar):
         what = uvar.what
@@ -116,10 +112,12 @@ class Cmrac():
             - (phif - phi) / args.tau_f
         ).ravel()
 
-        next_z = z + args.t_step * (
-            (- u[:, np.newaxis] - self.Bhat.dot(
+        next_z = z + args.t_step * ((
+            - u[:, np.newaxis]
+            - self.Bhat.dot(
                 np.eye(args.ndim_state) / args.tau_f + args.A
-            ).dot(e[:, np.newaxis]) - z[:, np.newaxis]) / args.tau_f
+            ).dot(e[:, np.newaxis])
+            - z[:, np.newaxis]) / args.tau_f
         ).ravel()
 
         eigs, _ = eig_thr(basissum, args.thr)
@@ -131,8 +129,6 @@ class Cmrac():
         elif sla.norm(phif) > args.thr:
             a, b = 0.999, self.lmax / sla.norm(phif)**2
 
-        # print(a, b)
-
         next_basissum = a * basissum + b * np.outer(phif, phif)
         next_estsum = a * estsum + b * np.outer(phif, esterror)
 
@@ -141,10 +137,11 @@ class Cmrac():
                          a=a, b=b)
 
     def command(self, t):
-        c = 5 * np.deg2rad(
-            scipy.signal.square([t * 2*np.pi / 20])
-            # - scipy.signal.square([t * 2*np.pi / 20 - np.pi/4])
-        )
+        if t > 10:
+            c = scipy.signal.square([(t - 10) * 2*np.pi / 20])
+        else:
+            c = np.array([0])
+
         return c
 
     def findab(self, A, y):
@@ -152,11 +149,6 @@ class Cmrac():
         args = self.args
 
         eigs, eigv = eig_thr(A, args.thr)
-
-        # if np.any(eigs == 0):
-        #     nz = np.where(eigs == 0)[0][-1]
-        # else:
-        #     nz = 0
 
         if np.any(eigs == 0):
             redind = ([np.argmax(eigv[:, eigs == 0].T.dot(y)**2)]
@@ -271,9 +263,14 @@ def plot_basis(data):
     x = data.time
 
     plt.figure()
-    plt.plot(x, data.reference_model, 'k--')
-    plt.plot(x, data.state, 'r')
+    plt.subplot(211)
+    plt.plot(x, data.state[:, 0], 'r')
+    plt.plot(x, data.reference_model[:, 0], 'k--')
     plt.title('States')
+
+    plt.subplot(212)
+    plt.plot(x, data.state[:, 1], 'r')
+    plt.plot(x, data.reference_model[:, 1], 'k--')
 
     plt.figure()
     for w in args.W.ravel():
@@ -297,7 +294,7 @@ def plot_phif(data):
     plt.plot(x, list(map(
         lambda phif: args.W.T.dot(phif), data.phif)), 'k')
     plt.plot(x, list(map(
-        lambda z, e: z - 1/args.tau_f * data.control.Bhat.dot(e),
+        lambda z, e: z + 1/args.tau_f * data.control.Bhat.dot(e),
         data.z, data.e)), 'b--')
     plt.plot(x, list(map(
         lambda what, phif: what.T.dot(phif), data.what, data.phif)), 'r--')
@@ -309,14 +306,12 @@ def plot_phif(data):
         y[i] = V.T.dot(phif)
 
     plt.plot(x, y[:, [0, -1]])
-    # plt.legend(['1', '2', '3', '4', '5'])
 
     plt.show()
 
 
 def plot_eigvals(data):
     x = data.time
-    # args = data.args
 
     plt.figure()
     plt.plot(x, list(map(
@@ -339,6 +334,7 @@ def plot_eigvals(data):
 def main(args):
     system = System(args)
     control = Cmrac(system)
+    system.command = control.command
 
     x = system.reset()
     uvar = control.reset()
@@ -371,33 +367,30 @@ def main(args):
         x = next_x
         uvar = next_uvar
 
-    # plot_basis(data)
-    # plot_phif(data)
-    # plot_eigvals(data)
-
     return data
 
 
 if __name__ == '__main__':
     args = Arguments()
-    args.A = np.array([[0, 1], [-30, -11]])
-    args.B = np.array([[0, 1]]).T
-    args.Br = np.array([[0, 1]]).T
-    args.Kr = np.array([[1]])
-    args.Q_lyap = 1*np.eye(2)
-    args.g_direct = 10000
-    args.g_indirect = 1
-    args.t_step = 0.01
-    args.t_final = 40
-    args.ndim_state = 2
+    args.A = np.array([[0, 1, 0], [-15.8, -5.6, -17.3], [1, 0, 0]])
+    args.B = np.array([[0, 1, 0]]).T
+    args.Br = np.array([[0, 0, -1]]).T
+    args.ndim_state = 3
     args.ndim_input = 1
     args.ndim_basis = 5
+    args.xinit = np.array([0.3, 0, 0])
+    args.Kr = np.array([[1]])
+    args.Q_lyap = 1*np.eye(args.ndim_state)
+    args.g_direct = 10000
+    args.g_indirect = 1
+    args.t_step = 1e-3
+    args.t_final = 40
     args.ts = np.arange(0, args.t_final, args.t_step)
     args.W = np.array([-18.59521, 15.162375, -62.45153,
                        9.54708, 21.45291])[:, np.newaxis]
     args.Lambda = np.diag([1])
-    args.tau_f = 1e-1
-    args.lambda_max = 3
-    args.thr = 1e-20
+    args.tau_f = 1e-3
+    args.lambda_max = 50
+    args.thr = 1e-8
 
     data = main(args)
