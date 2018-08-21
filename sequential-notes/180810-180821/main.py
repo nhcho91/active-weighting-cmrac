@@ -445,10 +445,10 @@ def main(args):
     return env
 
 
-def compare(is_save=False):
+def compare():
     mrac = load('data/record_mrac.npz')
     # sls = load('data/record_slscmrac.npz')
-    be = load('data/record_becmrac2.npz')
+    be = load('data/record_becmrac.npz')
     fe = load('data/record_fecmrac.npz')
 
     x = mrac.args.time
@@ -500,8 +500,7 @@ def compare(is_save=False):
     plt.yticks(visible=False)
     mark_inset(ax2, axins, loc1=1, loc2=3, fc="none", ec="0.5")
 
-    if is_save:
-        plt.savefig('images/state_input.png', dpi=400)
+    plt.savefig('images/state_input.png', dpi=400)
 
     # ====================
     # Parameter estimation
@@ -525,8 +524,7 @@ def compare(is_save=False):
 
     plt.tight_layout()
 
-    if is_save:
-        plt.savefig('images/parameter_estimation.png', dpi=400)
+    plt.savefig('images/parameter_estimation.png', dpi=400)
 
     # ===========================
     # Parameter estimation (norm)
@@ -544,8 +542,7 @@ def compare(is_save=False):
     plt.legend(loc='best')
     plt.tight_layout()
 
-    if is_save:
-        plt.savefig('images/parameter_estimation_normed.png', dpi=400)
+    plt.savefig('images/parameter_estimation_normed.png', dpi=400)
 
     # ===========
     # Eigenvalues
@@ -610,8 +607,7 @@ def compare(is_save=False):
     ax2.plot((-d, d), (1 - d, 1 + d), **kwargs)
     ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)
 
-    if is_save:
-        plt.savefig('images/eigenvalues.png', dpi=400)
+    plt.savefig('images/eigenvalues.png', dpi=400)
 
     # ===========
     # The a and b
@@ -640,7 +636,7 @@ def compare(is_save=False):
     axins.plot(fe.args.time, fe.args.a, **fe.kwargs)
     axins.plot(be.args.time, be.args.a, **be.kwargs)
     axins.set_xlim(-0.001, 0.02)
-    axins.set_ylim(-0.1, 3.2)
+    axins.set_ylim(-0.1, 5.5)
     plt.xticks(fontsize=8)
     plt.yticks(fontsize=8)
     mark_inset(ax1, axins, loc1=2, loc2=3, fc="none", ec="0.5")
@@ -656,32 +652,18 @@ def compare(is_save=False):
     mark_inset(ax1, axins2, loc1=2, loc2=4, fc="none", ec="0.5")
 
     axins3 = zoomed_inset_axes(ax2, 1)
-    axins3.set_axes_locator(InsetPosition(ax2, [0.65, 0.3, 0.32, 0.20]))
+    axins3.set_axes_locator(InsetPosition(ax2, [0.5, 0.3, 0.45, 0.25]))
     axins3.plot(fe.args.time, fe.args.b, **fe.kwargs)
     axins3.plot(be.args.time, be.args.b, **be.kwargs)
-    axins3.set_xlim(20, 22)
-    axins3.set_ylim(-0.5, 3.1)
+    axins3.set_xlim(35, 40)
+    axins3.set_ylim(-0.001, 0.001)
     plt.xticks(visible=False)
     plt.yticks(fontsize=8)
     mark_inset(ax2, axins3, loc1=3, loc2=4, fc="none", ec="0.5")
 
-    axins4 = zoomed_inset_axes(ax2, 1)
-
-    axins4.set_axes_locator(InsetPosition(ax2, [0.4, 0.6, 0.55, 0.3]))
-    axins4.plot(fe.args.time, fe.args.b, **fe.kwargs)
-    axins4.plot(be.args.time, be.args.b, **be.kwargs)
-    # axins4.set_xlim(0, 10)
-    # axins4.set_ylim(-1e10, 1e12)
-
-    # plt.xticks(visible=False)
-    plt.xticks(fontsize=8)
-    plt.yticks(fontsize=8)
-    # mark_inset(ax2, axins4, loc1=1, loc2=4, fc="none", ec="0.5")
-
     plt.subplots_adjust(left=0.1, right=0.95, top=0.95, wspace=0.3)
 
-    if is_save:
-        plt.savefig('images/a_and_b.png', dpi=400)
+    plt.savefig('images/a_and_b.png', dpi=400)
 
 
 if __name__ == '__main__':
@@ -722,7 +704,7 @@ if __name__ == '__main__':
         args.t_step = 5e-4
         args.tau_f = 1e-3
         args.lambda_max = 2.9e3
-        args.lmax_speed = 0.15
+        args.lmax_speed = 2
         args.thr = 1e-8
         args.case = 'BECMRAC'
         env = main(args)

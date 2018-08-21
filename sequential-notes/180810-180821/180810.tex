@@ -1,5 +1,7 @@
 \documentclass[nobib]{my-handout}
 
+\date{August 21, 2018}
+
 \newtheorem{theorem}{Theorem}
 \newtheorem{corollary}{Corollary}
 \newtheorem{lemma}{Lemma}
@@ -13,8 +15,8 @@
 \newtheorem{observation}{Observation}
 \newtheorem{remark}{Remark}
 
-\DeclareMathOperator{\ads}{ads}
 \DeclareMathOperator{\gap}{gap}
+\DeclareMathOperator{\Gap}{Gap}
 \DeclareMathOperator{\diag}{diag}
 \newcommand{\lmin}{\lambda_{\min}}
 \newcommand{\lmax}{\lambda_{\max}}
@@ -133,43 +135,29 @@ where $y(t)$ is measured using
 	for each $i=1,\dotsc,n$.
 \end{theorem}
 
-\begin{definition}[Additive spread, see~\cite{merikoski_inequalities_2004}]
+\begin{definition}[Gap, see~\cite{ipsen_refined_2009}]
 	Let $A$ be n-by-n matrix and let the eigenvalues of $A$ be
-	$\{\lambda_i\}_{i=1}^n$. The \textit{additive spread} is defined as 
+	$\{\lambda_i\}_{i=1}^n$. The \textit{gap} is defined as 
 	\begin{equation*}
-		\ads A = \operatorname*{max}_{i, j} \abs{\lambda_i -
-		\lambda_j}.
+		\gap_{i}(A) = \lambda_{i+1}(A) - \lambda_i(A),
+	\end{equation*}
+	for $i \in \{1, \dotsc, n-1\}$, and
+	\begin{equation*}
+		\gap_n(A) = \lambda_n(A) - \lambda_{n-1}(A).
 	\end{equation*}
 \end{definition}
-
-\begin{corollary}[Merikoski, see~\cite{merikoski_inequalities_2004}]
-	Let $A$ and $B$ be Hermitian n-by-n matrices. Then,
-	\begin{equation*}
-		\ads (A+B) \le \ads A + \ads
-	\end{equation*}
-\end{corollary}
-
-\begin{theorem}[Bhatia, see~\cite{bhatia_singular_1990}]
-	Let $A,\ B \in \MC{M}_n(\MB{C})$ be compact operators. Then for $j=1,2,\dotsc$,
-	we have
-	\begin{equation*}
-		2 s_j(A^\ast B) \le s_j(AA^\ast + BB^\ast)
-	\end{equation*}
-	where $s_j(A),\ j=1,2,\dotsc$ denote the singular values of $A$ in increasing
-	order.
-\end{theorem}
 
 
 \section{Problem Formulation}
 
 In \eqref{eq:general_form_of_composite_update_law}, let
 \begin{equation*}
-	\MC{A}(t) = - \int_0^t c(t, \tau) \phi(\tau) \phi^T(\tau) \dd{\tau},
+	\MC{A}(t) = \int_0^t c(t, \tau) \phi(\tau) \phi^T(\tau) \dd{\tau},
 \end{equation*}
 whose derivative is
 \begin{equation*}
-	\dot{\MC{A}}(t) = - \int_0^t \pdv{t} c(t, \tau) \phi(\tau) \phi^T(\tau)
-	\dd{\tau} - c(t, t) \phi(t) \phi^T(t) \qc \MC{A}(0) = 0.
+	\dot{\MC{A}}(t) = \int_0^t \pdv{t} c(t, \tau) \phi(\tau) \phi^T(\tau)
+	\dd{\tau} + c(t, t) \phi(t) \phi^T(t) \qc \MC{A}(0) = 0.
 \end{equation*}
 To deliberately consider a forgetting factor, let $c(t, \tau)$ be
 \begin{equation*}
@@ -178,7 +166,7 @@ To deliberately consider a forgetting factor, let $c(t, \tau)$ be
 for $\alpha: \MB{R}_{+} \to \MB{R}$ and $\beta: \MB{R}_{+} \to \MB{R}$,
 which leads to 
 \begin{equation*}
-	\dot{\MC{A}}(t) = - \alpha(t) \MC{A}(t) - \beta(t) \phi(t) \phi^T(t) \qc
+	\dot{\MC{A}}(t) = - \alpha(t) \MC{A}(t) + \beta(t) \phi(t) \phi^T(t) \qc
 	\MC{A}(0) = 0.
 \end{equation*}
 
@@ -438,34 +426,62 @@ where
 \end{proof}
 
 
-\section{Analytic Solution}
+\section{Simulations}
+
+We consider the following system
+\begin{equation*}
+	\dot{x}(t) = \mqty[0 & 1 & 0 \\ -15.8 & -5.6 & -17.3 \\ 1 & 0 & 0] x(t) +
+	\mqty[0 \\ 0 \\ -1] c(t) + \mqty[0 \\ 1 \\ 0] \qty(u(t) + \Delta(x)),
+\end{equation*}
+where ${W^\ast}^T \phi(x)$, for $W^\ast \coloneqq [-18.59521, 15.162375,
+-62.45153, 9.54708, 21.45291]^T$ and $\phi(x) \coloneqq [x_1, x_2, \abs{x_1}
+x_2, \abs{x_2} x_2, x_1^3]^T$. The command signal $c(t)$ is given by a square
+signal.
+
+The reference model is
+\begin{equation*}
+	\dot{x}_r(t) = \mqty[0 & 1 & 0 \\ -15.8 & -5.6 & -17.3 \\ 1 & 0 & 0]
+	x_r(t) + \mqty[0 \\ 0 \\ -1] c(t).
+\end{equation*}
+
+% \begin{table}
+% 	\centering
+% 	\caption{MRAC Parameters} 
+% 	\begin{tabular}{@{}lrlr@{}} \toprule
+% 		Parameter & Value & Parameter & Value \\ \midrule
+% 		$\Gamma_1$ & $10^4$ & $Q$ & $I_3$ \\
+% 		$\tau_f$ & $10^{-3}$ & $\lambda_0$ & $10^{-8}$ \\ \bottomrule
+% 	\end{tabular}
+% \end{table}
 
 
+\section{Results}
+
+\begin{figure*}[h]
+	\includegraphics[width=\textwidth]{images/state_input.png}
+	\caption{This figure shows states and inputs histories.}
+\end{figure*}
 
 
+\begin{figure}[h]
+	\includegraphics[width=\textwidth]{images/parameter_estimation_normed.png}
+	\caption{This figure shows normed parameter estimation errors.}
+\end{figure}
 
- 
+\begin{marginfigure}[1cm]
+	\includegraphics[width=\textwidth]{images/parameter_estimation.png}
+	\caption{This figure shows element-wise parameter estimation history.}
+\end{marginfigure}
 
-For $\lambda_{\min}(A^\prime) \ge \lambda_1$ for all $v$, the following
-conditions are necessary:
-\begin{fullwidth}
-	\begin{gather}
-		\qty((a \lambda_2 - \lambda_1) \abs{v_1}^2 - (1-a) \lambda_1
-		\norm{v_{2:n}}^2) b - (1-a) (a \lambda_2 - \lambda_1) \lambda_1 \ge 0, \\
-		a = 1 \qc \forall v \quad \text{s.t.} \quad v_1 = 0.
-	\end{gather}
-\end{fullwidth}
-asf
-\begin{gather*}
-	\qty(a \ads_1 + b \norm{v}^2)^2 - 4 ab \ads_1 \abs{v_1}^2
-	\le \qty(\qty(a \ads_1 + b \norm{v}^2) - 2 (1-a) \lambda_1)^2 \\
-	- 4 ab \ads_1 \abs{v_1}^2
-	\le - 4 (1-a) \lambda_1 \qty(a \ads_1 + b \norm{v}^2) + 4 (1-a)^2
-	\lambda_1^2 \\
-	\qty(a \ads_1 \abs{v_1}^2 - (1-a) \lambda_1 \norm{v}^2) b
-	- (1-a) \lambda_1 \ads_1 a + (1-a)^2 \lambda_1^2 \ge 0
-\end{gather*}
+\begin{figure}[h]
+	\includegraphics[width=\textwidth]{images/eigenvalues.png}
+	\caption{This figure shows the bounds of eigenvalues.}
+\end{figure}
 
+\begin{figure*}[h]
+	\includegraphics[width=\textwidth]{images/a_and_b.png}
+	\caption{This figure shows the history of $a$ and $b$.}
+\end{figure*}
 
 \bibliographystyle{plain}
 \bibliography{../global.bib}
