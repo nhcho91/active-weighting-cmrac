@@ -1,0 +1,86 @@
+\documentclass{beamer}
+
+\title{Data-Efficient Online Optimization for Dynamical Systems Without
+Persistent Excitation}
+\author{Seong-hun Kim, Namhoon Cho, Youdan Kim}
+
+% ~~~~~~~
+\usenavigationsymbolstemplate{}
+\setbeamertemplate{footline}[frame number]
+
+% ~~~~~~~
+\usepackage[backend=bibtex]{biblatex}
+\bibliography{../global}
+
+\usepackage{mathtools}
+\usepackage{physics}
+
+\theoremstyle{definition}
+\newtheorem{algorithm}{Algorithm}
+
+\theoremstyle{remark}
+\newtheorem{observation}{Observation}
+\newtheorem{remark}{Remark}
+
+% ~~~~~~~~~~~~~~
+\begin{document}
+
+\begin{frame}
+	\maketitle
+\end{frame}
+
+
+\section{Introduction}
+% ====================
+
+\begin{frame}
+	Composite adaptive control
+	Stochastic gradient descent
+	importance sampling
+	rank-one update
+\end{frame}
+
+\begin{frame}{Online Parameter Estimation}
+	Slotine said~\footfullcite{slotine_applied_1991}
+	\begin{itemize}
+		\item {\it When there is parameter uncertainty in a dynamic system (linear or
+			nonlinear), one way to reduce it is to use parameter estimation,}
+		\item {\it i.e., inferring the values of the parameters from the
+			measurements of input and output signals of the system.}
+	\end{itemize}
+	\begin{observation}
+	\end{observation}
+\end{frame}
+
+\begin{frame}{Example}
+	Consider the following scalar dynamics
+	\begin{equation*}
+		\dot{x} = f(x) + g(x) \qty(u(x) + {w^\ast}^T \phi(x)).
+	\end{equation*}
+	\pause
+	Now, suppose that we can measure $x$ and $\dot{x}$, and obviously $u(x)$ and
+	$\phi(x)$. Also, assume that $g(x)$ is non-zero for all time. Then,
+	\begin{equation*}
+		\phi(x)^T w^\ast = g^{-1}(x) \qty(\dot{x} - f(x)) - u(x) \eqqcolon y.
+	\end{equation*}
+	\begin{observation}
+		\begin{enumerate}
+			\item This equation has the same form of linear regression.
+			\item If $w^\ast$ is constant, and the measurements are perfect, then we
+				only need $N$ independent datasets of $(x, y)$ to determine the value
+				$w^\ast$.
+		\end{enumerate}
+	\end{observation}
+\end{frame}
+
+\begin{frame}
+	Batch
+
+\end{frame}
+
+\begin{frame}{Importance Sampling}
+	sadf
+\end{frame}
+
+\end{document}
+
