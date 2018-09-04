@@ -2,8 +2,10 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes, mark_inset, InsetPosition
 import numpy as np
 import scipy.linalg as sla
+import os
 
-from utils import eig_thr
+from utils import eig_thr, Arguments
+from agents import BeAgent
 
 
 def plot_basis(env):
@@ -328,3 +330,142 @@ def compare(mrac, be, fe, is_save=False):
         plt.savefig('images/a_and_b.png', dpi=400)
 
     plt.show()
+
+
+def ba_region(is_save=False):
+    args = Arguments(
+        thr=1e-8,
+        lmax=10,
+    )
+    agent = BeAgent(args)
+
+    np.random.seed(1)
+    a = np.random.rand(5, 5)
+    A = a.T.dot(a)
+    y = np.random.rand(5)
+
+    eargs = agent._make_eargs(A, y)
+
+    def f1(b, a, eargs):
+        temp = lambda b, a: agent._f_from_ab(
+            a, b, c=eargs.c1, l1=eargs.l1, l2=eargs.g1 + eargs.l1,
+            v1=eargs.v1, nv=eargs.nv)
+        return np.vectorize(temp)(b, a)
+
+    def fn(b, a, eargs):
+        temp = lambda b, a: agent._f_from_ab(
+            a, b, c=eargs.cn, l1=eargs.ln, l2=eargs.ln - eargs.gn,
+            v1=eargs.vn, nv=eargs.nv)
+        return np.vectorize(temp)(b, a)
+
+    bb, aa = np.meshgrid(np.linspace(-2, 5, 500),
+                         np.linspace(-0.2, 1.3, 500))
+
+    eargs.c1 = eargs.l1
+    eargs.cn = eargs.ln*1.01
+
+    fv1 = f1(bb, aa, eargs)
+    fv2 = fn(bb, aa, eargs)
+
+    eargs.cn = eargs.ln
+    fv2_2 = fn(bb, aa, eargs)
+    z1 = (fv1 > 0) & (fv2_2 > 0)
+
+    fv2[fv2 == 0] = np.inf
+
+    a, b = agent.findab(A, y, eargs.ln)
+    lmin = agent._c_from_ab(
+        a, b, eargs.l1, eargs.l1 + eargs.g1, eargs.v1, eargs.nv)
+    fv3 = f1(bb, aa, Arguments(eargs, c1=lmin))
+
+    # Colorful
+    # ========
+    plt.figure()
+    plt.vlines(0, aa.min(), aa.max(), lw=1, alpha=.3)
+    plt.hlines(0, bb.min(), bb.max(), lw=1, alpha=.3)
+
+    plt.contourf(bb, aa, fv1/eargs.l1,
+                 levels=[1, 2, 3, 4, 5, 6, 7],
+                 alpha=.2, cmap='Blues_r')
+    plt.contourf(bb, aa, fv2/eargs.ln,
+                 levels=[0, 0.2, 0.4, 0.6, 0.8, 1],
+                 alpha=.2, cmap='Reds_r')
+    # cs = plt.contourf(bb, aa, z1.astype(int), 1,
+    #                   colors='none', hatches=[None, '//'])
+    plt.contourf(bb, aa, z1.astype(int), 1, colors=['w', 'k'], alpha=.1)
+
+    c1 = plt.contour(bb, aa, fv1/eargs.l1,
+                     levels=[1, 2, 3, 4, 5, 6],
+                     linewidths=[1.2, 1, 1, 1, 1, 1],
+                     alpha=.5, colors='b')
+    c2 = plt.contour(bb, aa, fv2/eargs.ln,
+                     levels=[0, 0.2, 0.4, 0.6, 0.8, 1],
+                     linewidths=[1, 1, 1, 1, 1, 1.2],
+                     alpha=.5, colors='r')
+
+    plt.contour(bb, aa, z1, 1, colors='k', linestyles='dashed')
+
+    c3 = plt.contour(bb, aa, fv3/eargs.l1, [lmin/eargs.l1],
+                     colors=['b'], alpha=.9,
+                     linewidths=1.5, linestyles='dashed')
+    plt.plot(b, a, marker='*', c='g', markersize=12)
+
+    plt.clabel(c1, fmt='%3.1f', inline=True, use_clabeltext=True,
+               fontsize=10)
+    plt.clabel(c2, fmt='%3.1f', inline=True, use_clabeltext=True,
+               fontsize=10)
+    plt.clabel(c3, fmt='%5.3f', inline=True, use_clabeltext=True,
+               fontsize=11)
+
+    plt.xlabel('b')
+    plt.ylabel('a')
+
+    plt.tight_layout()
+
+    if is_save:
+        if not os.path.exists('media'):
+            os.mkdir('media')
+        plt.savefig('media/ba_region_color.png', dpi=400)
+
+    # Grayscale
+    # =========
+    plt.figure()
+    plt.vlines(0, aa.min(), aa.max(), lw=1, alpha=.3)
+    plt.hlines(0, bb.min(), bb.max(), lw=1, alpha=.3)
+
+    c1_dashed = plt.contour(bb, aa, fv1/eargs.l1,
+                            levels=[2, 3, 4, 5, 6],
+                            linestyles='dashed', linewidths=.7, colors='k')
+    c1 = plt.contour(bb, aa, fv1/eargs.l1,
+                     levels=1, linewidths=.7, colors='k')
+    c2_dashed = plt.contour(bb, aa, fv2/eargs.ln,
+                            levels=[0, 0.2, 0.4, 0.6, 0.8],
+                            linestyles='dashed', linewidths=.7, colors='k')
+    c2 = plt.contour(bb, aa, fv2/eargs.ln,
+                     levels=1, linewidths=.7, colors='k')
+
+    c3 = plt.contour(bb, aa, fv3/eargs.l1, [lmin/eargs.l1],
+                     colors=['k'], linewidths=1.5, linestyles='dashed')
+
+    plt.contour(bb, aa, z1, 1, colors='k', linewidths=2)
+
+    plt.plot(b, a, marker='*', c='k', markersize=11)
+
+    kwargs = dict(fmt='%3.1f', inline=True, fontsize=10)
+    plt.clabel(c1_dashed, **kwargs)
+    plt.clabel(c1, **kwargs)
+    plt.clabel(c2_dashed, **kwargs)
+    plt.clabel(c2, **kwargs)
+    plt.clabel(c3, **dict(kwargs, fmt='%5.3f', fontsize=11))
+
+    plt.xlabel(r'$b$')
+    plt.ylabel(r'$a$')
+
+    plt.tight_layout()
+
+    if is_save:
+        if not os.path.exists('media'):
+            os.mkdir('media')
+        plt.savefig('media/ba_region_gray.png', dpi=400)
+    else:
+        plt.show()
