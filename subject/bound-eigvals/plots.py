@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation
 from mpl_toolkits.axes_grid1.inset_locator import (
     zoomed_inset_axes, mark_inset, InsetPosition)
 from mpl_toolkits.mplot3d import Axes3D
@@ -477,11 +477,12 @@ def ba_region(is_save=False):
 
 
 def phiden(is_save=False):
-    env = main.load('data/record_mrac.npz')
+    env = main.load('data/record_mrac_long.npz')
 
     args = env.args
-    time = args.time.ravel()
-    state = args.state
+    cut = args.time.ravel() < 80
+    time = args.time[cut].ravel()
+    state = args.state[cut]
     system = env.system
 
     basis = np.apply_along_axis(system.unc.basis, 1, state).T
@@ -539,14 +540,19 @@ def phiden(is_save=False):
         fig.canvas.draw()
         return lines + lines_footprint
 
-    f = 100
+    f = 10
     indices = np.arange(0, time.size, f)
-    anim = FuncAnimation(fig, update,
-                         frames=np.arange(0, indices.size),
-                         interval=args.t_step * f, blit=True)
+    anim = animation.FuncAnimation(
+        fig, update, frames=np.arange(0, indices.size),
+        interval=args.t_step * f, blit=True)
 
     if len(sys.argv) > 1 and sys.argv[1] == 'save':
-        anim.save('phiden.gif', dpi=100, writer='imagemagick')
+        # anim.save('phiden.gif', dpi=40, writer='imagemagick')
+        anim.save('media/phiden.mov',
+                  writer=animation.FFMpegWriter(
+                      extra_args=['-pix_fmt', 'yuv420p'],
+                      fps=4/(args.t_step * f)
+                  ))
     else:
         # plt.show() will just loop the animation forever.
         plt.show()
