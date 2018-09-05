@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes, mark_inset, InsetPosition
+from matplotlib.animation import FuncAnimation
+from mpl_toolkits.axes_grid1.inset_locator import (
+    zoomed_inset_axes, mark_inset, InsetPosition)
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import scipy.linalg as sla
 import os
+import sys
 
 from utils import eig_thr, Arguments
 from agents import BeAgent
@@ -179,7 +183,8 @@ def compare(mrac, be, fe, is_save=False):
     # ===========================
     plt.figure(figsize=(8.02, 3.74))
 
-    plt.plot(x, sla.norm(mrac.args.what - mrac.args.W.T, axis=1), **mrac.kwargs)
+    plt.plot(x, sla.norm(mrac.args.what - mrac.args.W.T, axis=1),
+             **mrac.kwargs)
     plt.plot(fe.args.time, sla.norm(fe.args.what - fe.args.W.T, axis=1),
              **fe.kwargs)
     plt.plot(be.args.time, sla.norm(be.args.what - be.args.W.T, axis=1),
@@ -469,3 +474,85 @@ def ba_region(is_save=False):
         plt.savefig('media/ba_region_gray.png', dpi=400)
     else:
         plt.show()
+
+
+def phiden(is_save=False):
+    env = main.load('data/record_mrac.npz')
+
+    args = env.args
+    time = args.time.ravel()
+    state = args.state
+    system = env.system
+
+    basis = np.apply_along_axis(system.unc.basis, 1, state).T
+    data = [basis[:3, :], basis[2:, :]]
+
+    # Animated
+    # ========
+    fig = plt.figure()
+
+    print('fig size: {0} DPI, size in inches {1}'.format(
+        fig.get_dpi(), fig.get_size_inches()))
+
+    ax = fig.add_subplot(111, projection='3d')
+    ax.axis('off')
+
+    colors = plt.cm.tab20([0, 2])
+
+    lines_footprint = [ax.plot([], [], [], c='gray', lw=.8, alpha=.5)[0]
+                       for _ in range(2)]
+    lines = [ax.plot([], [], [], c=c, lw=1.4)[0]
+             for c in colors]
+
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1.8, 1)
+    ax.set_zlim(-1, 1.1)
+    ax.view_init(31, -62)
+
+    lag = 1000
+
+    def init():
+        for line, line_footprint in zip(lines, lines_footprint):
+            line.set_data([], [])
+            line.set_3d_properties([])
+
+            line_footprint.set_data([], [])
+            line.set_3d_properties([])
+        return lines + lines_footprint
+
+    def update(n):
+        i = indices[n]
+
+        if i % 100 == 0:
+            sys.stdout.write('Time: {:5.2f} sec\r'.format(time[i]))
+            sys.stdout.flush()
+
+        for (line, line_footprint, datum) in zip(lines, lines_footprint, data):
+            line.set_data(datum[0, i - np.clip(lag, 0, i):i+1],
+                          datum[1, i - np.clip(lag, 0, i):i+1])
+            line.set_3d_properties(datum[2, i - np.clip(lag, 0, i):i+1])
+
+            line_footprint.set_data(datum[0, :i+1], datum[1, :i+1])
+            line_footprint.set_3d_properties(datum[2, :i+1])
+
+        ax.view_init(31, -62 + (args.t_step * i) * 10)
+        fig.canvas.draw()
+        return lines + lines_footprint
+
+    f = 100
+    indices = np.arange(0, time.size, f)
+    anim = FuncAnimation(fig, update,
+                         frames=np.arange(0, indices.size),
+                         interval=args.t_step * f, blit=True)
+
+    if len(sys.argv) > 1 and sys.argv[1] == 'save':
+        anim.save('phiden.gif', dpi=100, writer='imagemagick')
+    else:
+        # plt.show() will just loop the animation forever.
+        plt.show()
+
+
+if __name__ == '__main__':
+    import main
+
+    phiden()

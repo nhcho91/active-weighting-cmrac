@@ -7,7 +7,7 @@ from collections import deque, UserDict
 from tqdm import tqdm
 
 from utils import Arguments, Record, eig_thr
-from plots import compare
+from plots import compare, phiden
 
 
 class System():
@@ -49,7 +49,7 @@ class Cmrac():
         self.args = system.args
 
         self.P = sla.solve_lyapunov(self.args.A.T, -self.args.Q_lyap)
-        self.Bhat = sla.pinv(args.B)
+        self.Bhat = sla.pinv(self.args.B)
         self.system = system
 
     def reset(self):
@@ -395,3 +395,24 @@ if __name__ == '__main__':
         be = load('data/record_becmrac.npz')
         fe = load('data/record_fecmrac.npz')
         compare(mrac=mrac, be=be, fe=fe)
+
+    # Plot phi density
+    if False:
+        env = load('data/record_mrac.npz')
+        phiden(env)
+
+    # Long record
+    if False:
+        args.case = 'MRAC'
+        args.t_final = 120
+        env = main(args)
+        save(env.args, 'data/record_mrac_long.npz')
+        print('MRAC - end')
+
+    # Standard LS CMRAC
+    if True:
+        args.case = 'SLSCMRAC'
+        args.t_final = 120
+        env = main(args)
+        save(env.args, 'data/record_slscmrac_long.npz')
+        print('SLSMRAC - end')

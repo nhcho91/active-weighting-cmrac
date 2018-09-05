@@ -1,6 +1,7 @@
 ### Custom ###
 data/
 images/
+media/
 
 # Created by https://www.gitignore.io/api/vim,linux,macos,python
 
