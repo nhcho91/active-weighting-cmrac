@@ -410,7 +410,7 @@ if __name__ == '__main__':
         print('MRAC - end')
 
     # Standard LS CMRAC
-    if True:
+    if False:
         args.case = 'SLSCMRAC'
         args.t_final = 120
         env = main(args)
