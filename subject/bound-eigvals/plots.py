@@ -100,7 +100,7 @@ def plot_eigvals(env):
     plt.show()
 
 
-def compare(mrac, be, fe, is_save=False):
+def compare(mrac, be, fe):
     x = mrac.args.time
 
     basic_kwargs = dict(c='k', lw=0.7)
@@ -150,8 +150,10 @@ def compare(mrac, be, fe, is_save=False):
     plt.yticks(visible=False)
     mark_inset(ax2, axins, loc1=1, loc2=3, fc="none", ec="0.5")
 
-    if is_save:
-        plt.savefig('images/state_input.png', dpi=400)
+    if len(sys.argv) > 1 and sys.argv[1] == 'save':
+        if not os.path.exists('media'):
+            os.mkdir('media')
+        plt.savefig('media/state_input.png', dpi=400)
 
     # ====================
     # Parameter estimation
@@ -175,8 +177,10 @@ def compare(mrac, be, fe, is_save=False):
 
     plt.tight_layout()
 
-    if is_save:
-        plt.savefig('images/parameter_estimation.png', dpi=400)
+    if len(sys.argv) > 1 and sys.argv[1] == 'save':
+        if not os.path.exists('media'):
+            os.mkdir('media')
+        plt.savefig('media/parameter_estimation.png', dpi=400)
 
     # ===========================
     # Parameter estimation (norm)
@@ -195,8 +199,10 @@ def compare(mrac, be, fe, is_save=False):
     plt.legend(loc='best')
     plt.tight_layout()
 
-    if is_save:
-        plt.savefig('images/parameter_estimation_normed.png', dpi=400)
+    if len(sys.argv) > 1 and sys.argv[1] == 'save':
+        if not os.path.exists('media'):
+            os.mkdir('media')
+        plt.savefig('media/parameter_estimation_normed.png', dpi=400)
 
     # ===========
     # Eigenvalues
@@ -207,7 +213,7 @@ def compare(mrac, be, fe, is_save=False):
     be.eigs = np.array(list(map(
         lambda A: eig_thr(A, be.args.thr)[0], be.args.basissum))).T
 
-    plt.figure(figsize=(7.03, 7.53))
+    plt.figure(figsize=(8.75, 6.1))
 
     ax1 = plt.subplot(211)
 
@@ -261,8 +267,12 @@ def compare(mrac, be, fe, is_save=False):
     ax2.plot((-d, d), (1 - d, 1 + d), **kwargs)
     ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)
 
-    if is_save:
-        plt.savefig('images/eigenvalues.png', dpi=400)
+    plt.subplots_adjust(top=0.95, bottom=0.07)
+
+    if len(sys.argv) > 1 and sys.argv[1] == 'save':
+        if not os.path.exists('media'):
+            os.mkdir('media')
+        plt.savefig('media/eigenvalues.png', dpi=400)
 
     # ===========
     # The a and b
@@ -331,13 +341,15 @@ def compare(mrac, be, fe, is_save=False):
 
     plt.subplots_adjust(left=0.1, right=0.95, top=0.95, wspace=0.3)
 
-    if is_save:
-        plt.savefig('images/a_and_b.png', dpi=400)
+    if len(sys.argv) > 1 and sys.argv[1] == 'save':
+        if not os.path.exists('media'):
+            os.mkdir('media')
+        plt.savefig('media/a_and_b.png', dpi=400)
+    else:
+        plt.show()
 
-    plt.show()
 
-
-def ba_region(is_save=False):
+def ba_region():
     args = Arguments(
         thr=1e-8,
         lmax=10,
@@ -427,7 +439,7 @@ def ba_region(is_save=False):
 
     plt.tight_layout()
 
-    if is_save:
+    if len(sys.argv) > 1 and sys.argv[1] == 'save':
         if not os.path.exists('media'):
             os.mkdir('media')
         plt.savefig('media/ba_region_color.png', dpi=400)
@@ -468,7 +480,7 @@ def ba_region(is_save=False):
 
     plt.tight_layout()
 
-    if is_save:
+    if len(sys.argv) > 1 and sys.argv[1] == 'save':
         if not os.path.exists('media'):
             os.mkdir('media')
         plt.savefig('media/ba_region_gray.png', dpi=400)
@@ -555,4 +567,11 @@ def phiden(is_save=False):
 if __name__ == '__main__':
     import main
 
-    phiden()
+    # phiden()
+    # ba_region()
+
+    if True:
+        mrac = main.load('data/record_mrac.npz')
+        be = main.load('data/record_becmrac.npz')
+        fe = main.load('data/record_fecmrac.npz')
+        compare(mrac=mrac, be=be, fe=fe)

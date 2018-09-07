@@ -1,26 +1,50 @@
-\documentclass{beamer}
+\documentclass[]{beamer}
 
 \title{Data-Efficient Online Optimization for Dynamical Systems Without
 Persistent Excitation}
 \author{Seong-hun Kim, Namhoon Cho, Youdan Kim}
+\institute{
+	Flight Dynamics and Control Lab. \\
+	Seoul Natl.~Univ. \\
+}
+\date{Lab Seminar \\ September 7, 2018}
+
 
 % ~~~~~~~
 \usenavigationsymbolstemplate{}
 \setbeamertemplate{footline}[frame number]
+\setbeamerfont{footnote}{size=\tiny}
 
 % ~~~~~~~
-\usepackage[backend=bibtex]{biblatex}
+\usepackage[backend=bibtex, style=ieee, citetracker=true]{biblatex}
 \bibliography{../global}
 
 \usepackage{mathtools}
 \usepackage{physics}
 
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+
 \theoremstyle{definition}
+\newtheorem{assumption}{Assumption}
 \newtheorem{algorithm}{Algorithm}
 
 \theoremstyle{remark}
 \newtheorem{observation}{Observation}
 \newtheorem{remark}{Remark}
+
+\usepackage{multimedia}
+
+\usepackage{algorithm, algpseudocode}
+
+% ~~~~~~~
+\newcommand{\MC}[1]{\mathcal{#1}}
+\newcommand{\MB}[1]{\mathbb{#1}}
+\DeclareMathOperator{\gap}{gap}
+\DeclareMathOperator{\Gap}{Gap}
+\DeclareMathOperator{\diag}{diag}
+\newcommand{\lmin}{\lambda_{\min}}
+\newcommand{\lmax}{\lambda_{\max}}
 
 % ~~~~~~~~~~~~~~
 \begin{document}
@@ -33,14 +57,12 @@ Persistent Excitation}
 \section{Introduction}
 % ====================
 
-\begin{frame}
-	Composite adaptive control
-	Stochastic gradient descent
-	importance sampling
-	rank-one update
-\end{frame}
+\begin{frame}{Composite Adaptive Control}
+	\begin{description}
+		\item[CAC]: adaptive control + online parameter estimation
+	\end{description}
 
-\begin{frame}{Online Parameter Estimation}
+	\vspace{1em}
 	Slotine said~\footfullcite{slotine_applied_1991}
 	\begin{itemize}
 		\item {\it When there is parameter uncertainty in a dynamic system (linear or
@@ -48,38 +70,433 @@ Persistent Excitation}
 		\item {\it i.e., inferring the values of the parameters from the
 			measurements of input and output signals of the system.}
 	\end{itemize}
-	\begin{observation}
-	\end{observation}
 \end{frame}
+% ~~~~~~~~~
 
-\begin{frame}{Example}
-	Consider the following scalar dynamics
+\begin{frame}{Example: Online Parameter Estimation}
+	Consider the following scalar system with $w^\ast \in \MB{R}^N$
 	\begin{equation*}
 		\dot{x} = f(x) + g(x) \qty(u(x) + {w^\ast}^T \phi(x)).
 	\end{equation*}
 	\pause
+	% ~~~~
 	Now, suppose that we can measure $x$ and $\dot{x}$, and obviously $u(x)$ and
 	$\phi(x)$. Also, assume that $g(x)$ is non-zero for all time. Then,
 	\begin{equation*}
 		\phi(x)^T w^\ast = g^{-1}(x) \qty(\dot{x} - f(x)) - u(x) \eqqcolon y.
 	\end{equation*}
+	\pause
+	% ~~~~
 	\begin{observation}
 		\begin{enumerate}
 			\item This equation has the same form of linear regression.
 			\item If $w^\ast$ is constant, and the measurements are perfect, then we
-				only need $N$ independent datasets of $(x, y)$ to determine the value
+				only need $N$ independent data of $(x, y)$ to determine the parameter
 				$w^\ast$.
 		\end{enumerate}
 	\end{observation}
 \end{frame}
+% ~~~~~~~~~
+
+
+\section{Problem Formulation}
+% ===========================
+
+\begin{frame}{Dataset}
+	Consider a sequence of data
+	\begin{equation*}
+		\MC{D}_0,\ \MC{D}_1,\ \MC{D}_2,\ \dotsc,\ \MC{D}_{k-2},\
+		\MC{D}_{k-1},\ \MC{D}_k
+	\end{equation*}
+	where $\MC{D}_i \coloneqq \qty(x(t_i),\ y(t_i))$. Also, we can write
+	\begin{align*}
+		\Phi_{\{i_1,\dotsc,i_M\}}
+		&\coloneqq \mqty[\phi(x(t_{i_1})) & \cdots & \phi(x(t_{i_M}))]
+		\mqty[\phi^T(x(t_{i_1})) \\ \vdots \\ \phi^T(x(t_{i_M}))] \\
+		&= \sum_{j=1}^M \phi(x(t_{i_j})) \phi^T(x(t_{i_j})).
+	\end{align*}
+
+	\begin{assumption}
+		There exist at least $M \ge N$ data such that $\Phi_{\{i_1,\dotsc,i_M\}}$
+		has full rank.
+	\end{assumption}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Problem Classification}
+	\begin{enumerate}
+		\item<+-> \textbf{Perfect data, constant parameter:}
+			\begin{itemize} 
+				\item Choose \textit{any} $M \ge N$ independent data so that the rank
+					is full.
+				\item \textit{Optimal strategy}: Choose \alert{best combination} among
+					all data, which requires a huge memory.
+			\end{itemize}
+		\item<+-> \textbf{Perfect data, varying parameter:}
+			\begin{itemize}
+				\item Choose $M \ge N$ independent data measured \textit{recently}.
+				\item \textit{Concurrent learning}: \alert{LIFO} if last one increases
+					the rank (or the smallest singular value). \alert{However}, it cannot
+					update until the condition is satisfied.
+				\item \textit{Optimal strategy}: Similar with more weighting to recent
+					data.
+			\end{itemize}
+		\item<+-> \textbf{Imperfect data, varying parameter:}
+			\begin{itemize}
+				\item \textit{(mini) Batch}: Choose \alert{$M \gg N$} data with
+					forgetting factor.
+				\item \textit{Iterative algorithm}: Rank-one update with
+					forgetting factor. 
+		\end{itemize}
+	\end{enumerate}
+	\uncover<+->{\it A limitation for \alert{dynamical systems}: Most of
+		iterative algorithms prove its stability based on i.i.d.~sampling
+	assumption.\footfullcite{nemirovski_robust_2009}}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Trajectory of $\phi(x)$}
+	\centering
+	\movie[loop, poster, showcontrols, width=\textwidth]{
+		\includegraphics[width=\textwidth]{media/phiden.jpg}
+	}{media/phiden.mov}
+\end{frame}
+% ~~~~~~~~~
+
+
+\section{Generalized Estimator}
+% =============================
+
+\begin{frame}{Generalization of Previous Works}
+	\begin{proposition}
+		The gradient estimators, the standard least-squares
+		estimators\footfullcite{slotine_applied_1991}, concurrent-learning
+		estimators\footfullcite{chowdhary_exponential_2014}, and many other recent
+		integration-based estimators\footfullcite{cho_composite_2018}$^,$
+		\footfullcite{pan_composite_2018} can be representative by the following
+		general form
+		\begin{gather*}
+			\dot{W}(t) = \Gamma_1 \phi(t) e^T P B \alert{- \int_0^t c(t, \tau)
+			\phi(\tau) \epsilon^T(t, \tau) \dd{\tau}}, \\
+			c(t,\tau) = \beta(\tau) \exp(- \int_\tau^t \alpha(\nu) \dd{\nu}).
+		\end{gather*}
+	\end{proposition}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Example: The Gradient and SLS Estimators}
+	Let us define
+	\begin{equation*}
+		\alpha(\nu) = \frac{1}{\Delta} \qc \beta(\tau) = \frac{1}{\Delta}
+		P(\tau).
+	\end{equation*}
+	\pause
+	% ~~~~
+	Then,
+	\begin{equation*}
+		c(t, \tau) \to P(\tau) \cdot \delta(t-\tau) \qas \Delta \to 0,
+	\end{equation*}
+	where $\delta: [0, t] \to \MB{R}_{+}$ is the Dirac delta function defined on
+	$[0, t]$.
+	\pause
+	% ~~~~
+
+	This leads the general form to the gradient and standard least-squares
+	estimators
+	\begin{equation*}
+		\dot{W}(t) = \Gamma_1 \phi(t) e^T P B \alert{- P(t) \phi(t) \epsilon^T(t)}.
+	\end{equation*}
+
+	\textbf{Note that} these estimators require the \alert{Persistent Excitation
+	(PE)} conditions, which is
+	\begin{equation*}
+		\int_t^{t + T} \phi(\tau) \phi^T(\tau) \dd{\tau} \succeq \gamma_1 I_N \qc
+		\text{for some } \gamma_1 > 0,\ T > 0,\ \text{for all } t \ge 0
+	\end{equation*}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Example: Concurrent-Learning Estimators}
+	With the same definitions of $\alpha$ and $\beta$
+	\begin{equation*}
+		\alpha(\nu) = \frac{1}{\Delta} \qc \beta(\tau) = \frac{\Gamma_2}{\Delta},
+	\end{equation*}
+	let us expand the definition of $c(t, \tau)$ a little bit as
+	\begin{equation*}
+		c^\prime(t, \tau) = \sum_{\substack{j=1 \\ t_{i_j} \in [0, t]}}^{M}
+		c(t_{i_j}, \tau) = \sum_{\substack{j=1 \\ t_{i_j} \in [0, t]}}^{M}
+		\Gamma_2 \delta(t_{i_j} - \tau),
+	\end{equation*}
+	Then, we have the concurrent-learning estimator
+	\begin{equation*}
+		\dot{W}(t) = \Gamma_1 \phi(t) e^T P B \alert{- \Gamma_2
+		\textstyle\sum_j \phi_{i_j} \epsilon_{i_j}^T(t)}.
+	\end{equation*}
+	\pause
+	% ~~~~
+
+	\textbf{Note that} this estimators require the \alert{rank condition} which
+	reads
+	\begin{equation*}
+		\textstyle\sum_j \phi_{i_j} \phi^T_{i_j} \succeq \gamma_1 I_N \qc \text{for
+		some } \gamma_1 > 0,\ \{i_j\}.
+	\end{equation*}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Example: Integration-Based Estimators}
+	This is obvious, as we can set $\beta(\tau) = 1$, which leads
+	\begin{equation*}
+		\dot{W}(t) = \Gamma_1 \phi(t) e^T P B \alert{- \int_0^t
+			\exp{- \int_\tau^t \alpha(\nu) \dd{\nu}} \phi(\tau) \epsilon^T(t,
+		\tau) \dd{\tau}}.
+	\end{equation*}
+
+	\textbf{Note that} N. Cho suggested the more relaxed condition called
+	\alert{Finite Excitation (FE)} condition, which reads
+	\begin{equation*}
+		\int_{t_s}^{t_s + T} \phi(\tau) \phi^T(\tau) \dd{\tau} \succeq \gamma_1
+		I_N,
+	\end{equation*}
+	for some $\gamma_1 > 0,\ T > 0$ and for \alert{some} $t_s \ge 0$.
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{So, Why the General Form is Useful?}
+	Let
+	\begin{equation*}
+		\MC{A}(t) = \int_0^t c(t, \tau) \phi(\tau) \phi^T(\tau) \dd{\tau}.
+	\end{equation*}
+	\textbf{Note that} we may define a \alert{generalized} excitation condition
+	\begin{equation*}
+		\MC{A}(t) \succeq \gamma_1 I_N \qc \text{for \alert{some} } \alert{c(t,
+		\tau)},\ \text{for all } t \ge 0.
+	\end{equation*}
+	\pause
+	Recall that
+	$ c(t, \tau) = \beta(\tau) \exp(- \int_\tau^t \alpha(\nu) \dd{\nu}), $
+	for $\alpha: \MB{R}_{+} \to \MB{R}$ and $\beta: \MB{R}_{+} \to \MB{R}$,
+	which leads to 
+	\begin{equation*}
+		\dot{\MC{A}}(t) = - \alpha(t) \MC{A}(t) + \beta(t) \phi(t) \phi^T(t) \qc
+		\MC{A}(0) = 0,
+	\end{equation*}
+	and its discrete counter part
+	\begin{equation*}
+		A^{k+1} = \alert{a_k} A^k + \alert{b_k} \phi_k \phi_k^T \qc A^0 = 0.
+	\end{equation*}
+\end{frame}
+% ~~~~~~~~~
+
+
+\section{Data-Efficient Rank-One Update}
+% ======================================
+
+\begin{frame}{The Rank-One Update}
+	Rewrite the discrete counter part as
+	\begin{equation*}
+		A^\prime = \alert{a} A + \alert{b} v v^T,
+	\end{equation*}
+	which can be viewed as a modified rank-one
+	update,\footfullcite{bunch_rank-one_1978} where the numerical mathematics
+	society is interested in the case of $a_k = 1$.
+	\pause
+
+	\vspace{1em}
+	\textbf{Ipsen and Nadler} introduced\footfullcite{ipsen_refined_2009} the
+	refined perturbation bounds for eigenvalues of $A^{k+1}$.
+
+	\vspace{1em}
+	Let us order the eigenvalues of a real symmetric matrix algebraically as
+	\begin{equation*}
+		\lambda_{\max} = \lambda_n \ge \lambda_{n-1} \ge \cdots \ge \lambda_2 \ge
+		\lambda_1 = \lambda_{\min}
+	\end{equation*}
+\end{frame}
+% ~~~~~~~~~
 
 \begin{frame}
-	Batch
-
+	\begin{theorem}[Ipsen, see~\cite{ipsen_refined_2009}]
+		\label{thm:ipsen}
+		Let $A \in \MB{C}^{n \times n}$ be Hermitian, $v \in \MB{C}^n$.
+		\begin{enumerate}[(i)]
+			\item<+-> (smallest eigenvalue). Let
+				\begin{equation*}
+					L_{\pm} \coloneqq \mqty(\lambda_2(A) & 0 \\ 0 & \lambda_1(A)) \pm
+					\mqty(\norm{v_{2:n}} \\ v_1) \mqty(\norm{v_{2:n}} & \bar{v}_1).
+				\end{equation*}
+				Then
+				\begin{equation*}
+					\lmin(L_{\pm}) \le \lmin(A \pm v v^\ast).
+				\end{equation*}
+			\item<+-> (largest eigenvalue). Let
+				\begin{equation*}
+					U_{\pm} \coloneqq \mqty(\lambda_n(A) & 0 \\ 0 & \lambda_{n-1}(A)) \pm
+					\mqty(v_n \\ \norm{v_{1:n-1}}) \mqty(\bar{v}_n & \norm{v_{1:n-1}}).
+				\end{equation*}
+				Then
+				\begin{equation*}
+					\lmax(A \pm v v^\ast) \le \lmax(U_{\pm}).
+				\end{equation*}
+		\end{enumerate}
+	\end{theorem}
 \end{frame}
+% ~~~~~~~~~
 
-\begin{frame}{Importance Sampling}
-	sadf
+\begin{frame}{Main Result}
+	Given $A \in \MB{S}^{n \times n}$, and $v \in \MB{R}^n$, let 
+	\begin{align*}
+		f_{i,j}^c(a, b) &\coloneqq \lambda_i \lambda_j a^2 + \qty(\norm{v_{-i}}^2
+		\lambda_i + \abs{v_i}^2 \lambda_j) a b \\
+		&\quad - \qty(\lambda_i + \lambda_j) a c - \norm{v}^2 b c + c^2,\\
+		g_{i,j}^c(a, b) &\coloneqq \qty(\lambda_1 + \lambda_2) a + \norm{v}^2 b -
+		2 c.
+	\end{align*}
+	\pause
+	% ~~~~
+
+	\begin{theorem}
+		Suppose that there exist $a, b \in \MB{R}$ and $c \in \MB{R}_{+}$, such
+		that 
+		\begin{enumerate}[(i)]
+			\item $f_{1, 2}^c(a,b) \ge 0$ and $g_{1, 2}^c(a,b) \ge 0$, then,
+				\begin{equation*}
+					\lambda_{\min} \qty(a A + b v v^T) \ge c.
+				\end{equation*}
+			\item $f_{n, n-1}^c(a,b) \ge 0$ and $g_{n, n-1}^c(a,b) \le 0$, then,
+				\begin{equation*}
+					\lambda_{\max} \qty(a A + b v v^T) \le c.
+				\end{equation*}
+		\end{enumerate}
+	\end{theorem}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Following Lemmas}
+	\begin{lemma}
+		Let $A \in \MB{S}^{n \times n}$ and $v \in \MB{R}^n$. Then, for all $c_1,
+		c_n \in \MB{R}$ such that $c_1/\lambda_1 \le c_n/\lambda_n$, there exist
+		$a>0, b \in \MB{R}$ satisfying
+		\begin{equation*}
+			c_1 \le \lambda_i(a A + b v v^T) \le c_2,
+		\end{equation*}
+		for $i = 1, \dotsc, n$.
+	\end{lemma}
+	\pause
+	% ~~~~
+
+	\begin{lemma}
+		Let $A \in \MB{S}^{n \times n}$ and $v \in \MB{R}^n$. Suppose that
+		${\abs{v_1}^2}/{\lambda_1} \ne {\abs{v_n}^2}/{\lambda_n}$,
+		$\lambda_2 > \lambda_1$, and $\lambda_n > \lambda_{n-1}$. Then, for all
+		$c_1, c_2$ such that $c_1/\lambda_1 \le c_n/\lambda_n$, there exist $a > 0$
+		and $b \in \MB{R}$ satisfying
+		\begin{equation*}
+			c_1 < \lambda_i(a A + b v v^T) < c_n,
+		\end{equation*}
+		for all $i = 1, \dotsc, n$.
+	\end{lemma}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Illustrative Example}
+	\begin{figure}[h]
+		\includegraphics[width=\textwidth]{media/ba_region_color.png}
+	\end{figure}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Algorithm}
+	\begin{algorithm}[H]
+		\begin{algorithmic}[1]
+			\caption{Greedy maximizing the smallest eigenvalue}
+			\Require $\bar{\lambda} \ge \lambda_{\max}$
+			\State $S \gets \{ s_j \in \{\lambda_i\} | s_j > 0, s_1 \ge 0,\ \text{for
+			} j \ge 2 \}$
+			\State Parameterize $r \gets r(a, b)$ such that
+			\begin{equation*}
+				f_{n, n-1}^{\bar{\lambda}}(a, b) = 0 \qc
+				g_{n, n-1}^{\bar{\lambda}}(a, b) \le 0
+			\end{equation*}
+			\ForAll{$r \in [r_{\min}, r_{\max}]$}
+			\State $a \gets a(r)$, $b \gets b(r)$
+			\State Line search to maximize $c$ sarisfying
+			\begin{equation*}
+				f_{1, 2}^c (a, b) = 0 \qc
+				g_{1, 2}^c (a, b) \ge 0
+			\end{equation*}
+			\EndFor             
+		\end{algorithmic}
+	\end{algorithm}
+\end{frame}
+% ~~~~~~~~~
+
+
+\section{Simulation Results}
+% ==========================
+
+\begin{frame}{Simulation Setup}
+	We consider the following system
+	\begin{equation*}
+		\dot{x}(t) = \mqty[0 & 1 & 0 \\ -15.8 & -5.6 & -17.3 \\ 1 & 0 & 0] x(t) +
+		\mqty[0 \\ 0 \\ -1] c(t) + \mqty[0 \\ 1 \\ 0] \qty(u(t) + \Delta(x)),
+	\end{equation*}
+	where $\Delta(x) = {W^\ast}^T \phi(x)$, for
+	\begin{equation*}
+		W^\ast \coloneqq [-18.59521, 15.162375, -62.45153, 9.54708, 21.45291]^T,
+	\end{equation*}
+	and
+	\begin{equation*}
+		\phi(x) \coloneqq [x_1, x_2, \abs{x_1} x_2, \abs{x_2} x_2, x_1^3]^T.
+	\end{equation*}
+	The command signal $c(t)$ is given by a square signal, and the reference
+	model is
+	\begin{equation*}
+		\dot{x}_r(t) = \mqty[0 & 1 & 0 \\ -15.8 & -5.6 & -17.3 \\ 1 & 0 & 0]
+		x_r(t) + \mqty[0 \\ 0 \\ -1] c(t).
+	\end{equation*}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{States and Input}
+	\makebox[\textwidth][c]{
+		\includegraphics[width=1.2\textwidth]{media/state_input.png}
+	}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Parameter Estimation}
+	\makebox[\textwidth][c]{
+		\includegraphics[width=0.8\textwidth]{media/parameter_estimation.png}
+	}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{Eigenvalues}
+	\makebox[\textwidth][c]{
+		\includegraphics[height=0.9\textheight]{media/eigenvalues.png}
+	}
+\end{frame}
+% ~~~~~~~~~
+
+\begin{frame}{$a$ and $b$}
+	\makebox[\textwidth][c]{
+		\includegraphics[width=1.2\textwidth]{media/a_and_b.png}
+	}
+\end{frame}
+% ~~~~~~~~~
+
+
+\section{Conclusion}
+% ==================
+
+\begin{frame}{Conclusion}
+	\begin{itemize}
+		\item We generalized recent composite adaptive update laws.
+		\item We suggested the systematic method to manipulate the generalize
+			update law based on the concept of maximizing the minimum eigenvalue.
+		\item We provided a sufficient condition to guarantee the update law.
+	\end{itemize}
 \end{frame}
 
 \end{document}
