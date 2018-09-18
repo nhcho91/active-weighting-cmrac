@@ -1,0 +1,210 @@
+\documentclass[]{IEEEtran}
+
+% Packages
+% ========
+\usepackage{cite}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage{algorithmicx}
+\usepackage{physics}
+
+
+% Recommend settings
+% ==================
+\interdisplaylinepenalty=2500  % (from bare_jnrl.tex of IEEEtran} 
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{proposition}{Proposition}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{problem}{Problem}
+\newtheorem{example}{Example}
+\newtheorem{algorithm}{Algorithm}
+\newtheorem{assumption}{Assumption}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem{note}{Note}
+
+
+% Macros
+% ======
+\newcommand{\MB}[1]{\mathbb{#1}}
+\newcommand{\MC}[1]{\mathcal{#1}}
+
+
+\begin{document}
+
+\title{Data-Efficient Composite Adaptive Control}
+\author{Seonng-hun Kim, Namhoon Kim, Youdan Kim}
+\author{Seong-hun~Kim,~\IEEEmembership{Member,~IEEE,}
+        Namhoon~Cho,~\IEEEmembership{Member,~IEEE,}
+        and~Youdan~Kim,~\IEEEmembership{Member,~IEEE} % <-this % stops a space
+\thanks{S-h. Kim, N. Cho, and Y. Kim are with the Department
+of Mechanical and Aerospace Engineering, Seoul National University, Seoul,
+30332 Republic of Korea e-mail: bgbgof@snu.ac.kr.}}
+\maketitle
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+% Abstract
+% ========
+\begin{abstract}
+	We propose...
+\end{abstract}
+% ~~~~~~~~~~~~
+
+
+% Keywords
+% ========
+\begin{IEEEkeywords}
+	Composite adaptive control, rank-one update
+\end{IEEEkeywords}
+% ~~~~~~~~~~~~~~~~
+
+
+\section{Introduction}
+% ====================
+
+There is a lot of algorithms proving the exponential convergence, under each
+excitation condition.
+
+In this paper, we propose the generalization of such excitation conditions, and
+how to ensure that excitation condition is met.
+
+
+\section{Preliminaries}
+% =====================
+%TODO: Rank-one update
+
+
+\section{Generalized Composite Adaptive Control}
+% ====================================================
+
+In this section, we suggest the generalized PE condition, which can cover many
+variations of the composite adaptive control. Up to now, lots of
+algorithms have been developed, which perform perfectly both in command
+tracking and parameter estimation. However, each algorithm has its own
+excitation condition, e.g. relaxed PE condition for standard least-squares
+estimators~\cite{slotine_applied_1991}, the rank condition for
+concurrent-learning-based estimators~\cite{chowdhary_exponential_2014}, and so
+on. To standardize the performances or to see what are the differences between
+those algorithms, 
+
+
+\subsection{Generalized Estimator}
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+We first formulate an estimator which is a general form of online estimators
+with unlimited memory filled with all previous data. Then, we will show that
+lots of reported online parameter estimators can be classified into a special
+case of this estimator.
+
+Consider the following linearly parameterized system
+\begin{equation*}
+	y(t) = {W^\ast}^T \nu(t),
+\end{equation*}
+where $W^\ast \in \MB{R}^{N \times n}$ is the unknown parameter to estimate,
+$\nu(t) \in \MB{R}^N$ and $y(t) \in \MB{R}^n$ are the feature vector and the
+output vector.
+
+The estimator widely used for the linearly parameterized system is the gradient
+estimator given by
+\begin{equation}\label{eq:estimation_system}
+	\dot{W}(t) =  - \Gamma \nu(t) \qty(\nu^T(t) W(t) - y^T(t))
+\end{equation}
+whose convergence is guaranteed under the independent and identically
+distributed (i.i.d) sampling for stochastic
+systems~\cite{nemirovski_robust_2009} or under the PE condition for dynamical
+systems~\cite{slotine_applied_1991}. The matrix $\Gamma$ with proper dimension
+is a positive definite matrix denoting the update rate.
+
+If the estimator is equipped with the unlimited memory, the update law can be
+naturally expanded to exploit the past data as follows
+\begin{equation}\label{eq:estimation_system_memory}
+	\dot{W}(t) = - \int_0^t c(t, \tau) \nu(\tau) \qty(\nu^T(\tau) W(t) -
+	y^T(\tau)) \dd{\tau}.
+\end{equation}
+This update law is analogous to batch gradient descent laws of stochastic
+optimization, except that there exists a weight distribution denoted by $c(t,
+\tau)$.
+
+Let us denote the estimation error by $\tilde{W}(t) \coloneqq W(t) - W^\ast$.
+Then, the error dynamics can be written as
+\begin{equation}\label{eq:estimation_error_system_memory}
+	\dot{\tilde{W}}(t) = - \int_0^t c(t, \tau) \nu(\tau) \nu^T(\tau) \dd{\tau}
+	\tilde{W}(t).
+\end{equation}
+According to~\cite{anderson_exponential_1977}, this system is exponentially
+asymptotically stable if and only if for all $s
+\in \MB{R}_{+}$,
+\begin{equation}
+	\sigma_1 I \le \int_{s}^{s+\delta} \int_0^t c(t, \tau) \nu(\tau) \nu(\tau)^T
+	\dd{\tau} \dd{t}
+	\le \sigma_n I,
+\end{equation}
+for some positive $\sigma_1$, $\sigma_n$, and $\delta$.
+
+\begin{definition}[Generalized persistent excitation]
+	The signal $\nu$ is said to be generalized persistently exciting if there
+	exist positive scalars $t_0$, $\gamma_1$, $\delta$ and a real-valued function
+	$\rho : \MB{R}_{+} \times \MB{R}_{+} \to \MB{R}$ such that
+	\begin{equation}\label{eq:GPE_condition}
+		\int_s^{s+\delta} \int_{t_0}^t \rho(t, \tau) \nu(\tau) \nu^T(\tau)
+		\dd{\tau} \dd{t} \ge \gamma_1 I,
+	\end{equation}
+	for all $s > t_0$.
+\end{definition}
+
+Note that the proposed definition of the signal excitation is a generalized
+version of various excitation conditions.
+
+\begin{example}[Persistent excitation]
+	Let $\rho(t, \tau) = \delta(t - \tau)$, the Dirac delta function, which
+	satisfies $\int_{t_0}^t \delta(t - \tau) f(\tau) \dd{\tau} = f(t)$, for all
+	function $f$, and $t > t_0$. Then, the condition~\eqref{eq:GPE_condition}
+	becomes the PE condition given by
+	\begin{equation*}
+		\alpha_1 I \le \int_s^{s+\delta} \nu(t) \nu^T(t) \dd{t} \le \alpha_2 I.
+	\end{equation*}
+\end{example}
+
+
+\begin{definition}[Data-driven excitation]
+	The signal $\nu$ is said to be data-driven exciting if there
+	exist positive scalars $t_0$, $\gamma_1$ and such that
+	\begin{equation}
+		\int_{t_0}^t c(t, \tau) \nu(\tau) \nu^T(\tau) \dd{\tau} \ge \gamma_1 I,
+	\end{equation}
+	for all $t > t_0$.
+\end{definition}
+
+\begin{proof}
+	Let us consider the following candidate Lyapunov function
+	\begin{equation}
+		V(t) = \frac{1}{2} \tr{\tilde{W}^T(t) \tilde{W}(t)}
+	\end{equation}
+	whose time derivative along the trajectories
+	of~\eqref{eq:estimation_error_system_memory} is given by
+	\begin{align*}
+		\dot{V}(t) &= - \tr{\tilde{W}^T(t) \int_0^t c(t, \tau) \nu(\tau)
+		\nu^T(\tau) \dd{\tau} \tilde{W}(t)} \\
+		&\le - \sigma_1 \tr{\tilde{W}^T(t) \tilde{W}(t)} \\
+		&= - 2 \sigma_1 V(t)
+	\end{align*}
+\end{proof}
+
+%TODO: Generalized estimator
+%TODO: Generalized PE condition
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,manuscript}
+
+\end{document}
+
