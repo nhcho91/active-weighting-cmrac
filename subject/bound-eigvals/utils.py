@@ -23,7 +23,7 @@ class Record(Arguments):
             self[name] = np.append(self[name], val, axis=0)
 
 
-def eig_thr(A, thr):
+def eig_thr(A, thr=0):
     eigs, eigv = sla.eig(A)
     sort = np.argsort(np.real(eigs))  # sort in ascending order
     eigs = np.real(eigs[sort])

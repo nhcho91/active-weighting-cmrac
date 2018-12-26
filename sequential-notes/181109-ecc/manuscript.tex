@@ -38,7 +38,12 @@
 \newcommand{\MC}[1]{\mathcal{#1}}
 \newcommand{\tsup}[1]{\textsuperscript{#1}}
 \newcommand{\tsub}[1]{\textsubscript{#1}}
+
 \DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\gap}{gap}
+\DeclareMathOperator{\Gap}{Gap}
+\newcommand{\lmin}{\lambda_{\min}}
+\newcommand{\lmax}{\lambda_{\max}}
 
 
 \begin{document}
@@ -147,17 +152,11 @@ slotine_applied_1991}.
 % on. To standardize the performances or to see what are the differences between
 % those algorithms, 
 
-\section{Data Exploit Estimator}
+
+\section{Data Exploiting Estimator}
 % =============================
 
-In this section, we first formulate an estimator which
-generalizes~\eqref{eq:estimation system} with an unlimited memory that can
-store all the previous data.  Then, we drive the corresponding excitation
-condition by which the global exponential stability is guaranteed.  In
-addition, we will show that lots of reported online parameter estimators can be
-classified into a special case of this estimator.
-
-Being equipped with the unlimited memory, the estimator \eqref{eq:estimation
+Being equipped with an unlimited memory, the estimator \eqref{eq:estimation
 system} can be naturally expanded to exploit the past data as follows
 \begin{equation}\label{eq:estimation system memory}
 	\dot{W}(t) = - \int_0^t d(t, \tau) \phi(\tau) \qty(\phi^T(\tau) W(t) -
@@ -180,7 +179,7 @@ system memory}.
 \end{equation}
 
 We now introduce an excitation condition of a signal that guarantees the
-exponential stability of~\eqref{eq:estimation error system memory}
+exponential stability of~\eqref{eq:estimation error system memory}.
 
 \begin{definition}[Persistent Excitation and Exploitation
 	(PE\tsup{2})]
@@ -188,14 +187,17 @@ exponential stability of~\eqref{eq:estimation error system memory}
 	exploited (PE\tsup{2})} if there exist positive scalars $\beta_1$, $\beta_2$,
 	$\delta$ and a real-valued function $d : \MB{R}_{+} \times \MB{R}_{+} \to
 	\MB{R}$ such that
-	\begin{equation}\label{eq:PE2}
+	\begin{equation}\label{eq:PE2 cond 1}
 		\beta_1 I \le \int_{t_0}^{t_0+\delta} \int_{0}^s d(s, \tau) \phi(\tau)
 		\phi^T(\tau) \dd{\tau} \dd{s} \le \beta_2 I,
 	\end{equation}
-	for all $t_0 \ge 0$.
+	for all $t_0 \ge 0$, and
+	\begin{equation}\label{eq:PE2 cond 2}
+		\int_0^s d(s, \tau) \phi(\tau) \phi^T(\tau) \dd{\tau} \ge 0,
+	\end{equation}
+	for all $s \ge 0$.
 \end{definition}
 
-Note that PE\tsup{2}
 We can now state the analogue of~\cite[Theorem~1]{anderson_exponential_1977}.
 
 \begin{theorem}\label{thm:PE2 then GES}
@@ -205,8 +207,8 @@ We can now state the analogue of~\cite[Theorem~1]{anderson_exponential_1977}.
 \end{theorem}
 
 \begin{proof}
-	Since $d \ge0 $, there is a unique matrix-valued function $\MC{H} :
-	\MB{R}_{+} \to \MB{R}^{n \times n}$ such that
+	Using~\eqref{eq:PE2 cond 2}, there is a unique matrix-valued function $\MC{H}
+	: \MB{R}_{+} \to \MB{R}^{n \times n}$ such that
 	\begin{equation*}
 		\int_0^s d(s, \tau) \phi(\tau) \phi(\tau)^T \dd{\tau} = \MC{H}(s)
 		\MC{H}(s)^T.
@@ -218,17 +220,6 @@ We can now state the analogue of~\cite[Theorem~1]{anderson_exponential_1977}.
 		\beta_1 I \le \int_{t_0}^{t_0 + \delta} \MC{H}(s) \MC{H}^T(s) \dd{s}
 		\le \beta_2 I.
 	\end{equation*}
-
-	\begin{gather*}
-		\int_0^{t_0}{\int_{t_0}^{t_0 + \delta}{d(s, \tau) \phi(\tau) \phi^T(\tau)
-		\dd{s}}\dd{\tau}}\\
-		+ \int_{t_0}^{t_0 + \delta}{\int_{\tau}^{t_0 + \delta}{d(s, \tau)
-		\phi(\tau) \phi^T(\tau) \dd{s}}\dd{\tau}} \\
-		= \int_0^{t_0}{\qty(D(t_0 + \delta, \tau) - D(t_0, \tau)) \phi(\tau)
-		\phi^T(\tau) \dd{\tau}} \\
-		+ \int_{t_0}^{t_0 + \delta}{\qty(D(t_0 + \delta, \tau) - D(\tau, \tau))
-		\phi(\tau) \phi^T(\tau) \dd{\tau}}
-	\end{gather*}
 \end{proof}
 
 Note that the proposed definition of PE\tsup{2} is a generalized version of
@@ -250,22 +241,10 @@ Example~\ref{ex:gradient estimators} shows that the memoryless estimators, e.g.
 the gradient estimators and the least-squares estimators, are of one specific
 form of~\eqref{eq:estimation system memory} that only use most recent data.
 
-However, the PE\tsup{2} condition~\eqref{eq:PE2}, as well as the PE
+However, the PE\tsup{2} condition~\eqref{eq:PE2 cond 1}, as well as the PE
 condition~\eqref{eq:PE}, is hard to check online since it needs to find
 $\delta$. Hence, we introduce another condition which is rather
 conservative but easy to be checked.
-
-\begin{definition}[Strict Excitation and Exploitation (SE\tsup{2})]
-	A signal $\phi: \MB{R}_{+} \to \MB{R}^n$ is said to be \textit{strictly
-	exciting and exploited (SE\tsup{2})} if there exist positive
-	scalar $\alpha_1$, $\alpha_2$, $t_1$ and a positive-valued function $d :
-	\MB{R}_{+} \times \MB{R}_{+} \to \MB{R}_{+}$ such that
-	\begin{equation}\label{eq:SE2}
-		\alpha_1 I \le \int_{0}^t d(t, \tau) \phi(\tau) \phi^T(\tau) \dd{\tau}
-		\le \alpha_2 I,
-	\end{equation}
-	for all $t \ge t_1$.
-\end{definition}
 
 For convenience, let
 \begin{equation}\label{eq:information matrix}
@@ -274,28 +253,38 @@ For convenience, let
 denoting the information matrix which expands the notion introduced
 in~\cite{cho_composite_2018}.
 
-Note that $\MC{M}(t)$ consists of the known $d(t, \tau)$ and
-the unlimited memory storing $\phi(\tau)$ for all $0 \le \tau \le t$, from
-which the SE\tsup{2} condition can be easily assessed, by which the exponential
-stability of~\eqref{eq:estimation error system memory} is guaranteed.
+\begin{definition}[Strict Excitation and Exploitation (SE\tsup{2})]
+	A signal $\phi: \MB{R}_{+} \to \MB{R}^n$ is said to be \textit{strictly
+	exciting and exploited (SE\tsup{2})} if there exist positive
+	scalar $\alpha_1$, $\alpha_2$, $t_1$ and a real-valued function $d :
+	\MB{R}_{+} \times \MB{R}_{+} \to \MB{R}$ such that
+	\begin{equation}\label{eq:SE2 cond 1}
+		\alpha_1 I \le \MC{M}(t) \le \alpha_2 I,
+	\end{equation}
+	for all $t \ge t_1$, where
+	\begin{equation}\label{eq:SE2 cond 2}
+		0 \le \MC{M}(t) \le \alpha_2 I,
+	\end{equation}
+	for all $t \ge 0$.
+\end{definition}
 
 \begin{lemma}\label{lem:SE2 then PE2}
 	If a signal is SE\tsup{2}, then the signal is PE\tsup{2}
 \end{lemma}
 
 \begin{proof}
-	Since $d \ge 0$, $0 \le \MC{M}(t) \le \alpha_2 I$, for all $0 \le t <
-	t_1$. Let us take $\delta = t_1 + \alpha_3$ in~\eqref{eq:PE2}, for some
-	$\alpha_3 > 0$. If $0 \le t_0 < t_1$,
+	From~\eqref{eq:SE2 cond 2}, $0 \le \MC{M}(t) \le \alpha_2 I$, for all $0 \le
+	t < t_1$. Let us take $\delta = t_1 + \alpha_3$ in~\eqref{eq:PE2 cond 1}, for
+	some $\alpha_3 > 0$. If $0 \le t_0 < t_1$, then
 	\begin{equation*}
-		0 \le \int_{t_0}^{t_1} {\MC{M}(s)} \dd{s} \le \alpha_2 (t_1 - t_0) I.
+		0 \le \int_{t_0}^{t_1} {\MC{M}(s)} \dd{s} \le \alpha_2 (t_1 - t_0) I,
 	\end{equation*}
 	and
 	\begin{equation*}
 		\alpha_1 \alpha_3 I \le \int_{t_1}^{t_0 + \delta} {\MC{M}(s)} \dd{s} \le
-		\alpha_2 (t_0 + \alpha_3) I,
+		\alpha_2 (t_0 + \alpha_3) I.
 	\end{equation*}
-	which implies that
+	Hence,
 	\begin{equation*}
 		\alpha_1 \alpha_3 I \le \int_{t_0}^{t_0 + \delta} {\MC{M}(s)} \dd{s} \le
 		\alpha_2 \delta I.
@@ -306,7 +295,7 @@ stability of~\eqref{eq:estimation error system memory} is guaranteed.
 		\alpha_2 \delta I.
 	\end{equation*}
 	Hence, letting $\beta_1 = \alpha_1 \alpha_3$ and $\beta_2 = \alpha_2 \delta$
-	yields~\eqref{eq:PE2} for all $t_0 \ge 0$, which completes the proof.
+	yields~\eqref{eq:PE2 cond 1} for all $t_0 \ge 0$, which completes the proof.
 \end{proof}
 
 With Lemma~\ref{lem:SE2 then PE2} and Theorem~\ref{thm:PE2 then GES}, we can
@@ -314,10 +303,13 @@ conclude that if a signal $\phi$ is SE\tsup{2}, then the
 system~\eqref{eq:estimation error system memory} is globally exponentially
 stable.
 
-The only thing left is how to determine the distribution $d(t, \tau)$ to
-satisfy the SE\tsup{2}.
+Note that $\MC{M}(t)$ consists of $d(t, \tau)$, which is a designed
+distribution, and the unlimited memory storing $\phi(\tau)$ for all $0 \le \tau
+\le t$, from which the SE\tsup{2} condition can be easily assessed. The only
+thing left is how to determine the distribution $d(t, \tau)$ to satisfy the
+SE\tsup{2}.
 
-\begin{example}[The Concurrent-Learning Estimators]
+\begin{example}[Concurrent-Learning Estimators]
 	Let $d(t, \tau)$ be
 	\begin{equation*}
 		d(t, \tau) = \gamma \sum_{s \in \MC{T}(t)} \delta_D(s - \tau),
@@ -350,11 +342,11 @@ To remedy these problems, there have been studies
 	and~\cite{pan_composite_2018}]
 \end{example}
 
-what we have to do is to properly distribute the data using $d(t,
+What we have to do now is to properly distribute the data using $d(t,
 \tau)$.
 
 
-\section{Online Estimation}
+\section{Discrete-Time Online Estimation}
 % ===========================
 
 In this section, we propose an online estimator that exploits the past data
@@ -369,56 +361,158 @@ piecewise-continuous with the finite number of discontinuities.
 
 With the proposed distribution~\eqref{eq:proposed distribution}, the
 information matrix $\MC{M}(t)$ satisfies the following differential equation.
-\begin{equation}
+\begin{equation}\label{eq:information matrix differential equation}
 	\dot{\MC{M}}(t) = - \rho(t) \MC{M}(t) + \sigma(t) \phi(t) \phi^T(t), \quad
 	\MC{M}(0) = 0.
 \end{equation}
 
-\begin{equation*}
-	\dot{\lambda}_i = x_i^T \dot{\MC{M}} x_i = - \rho \lambda_i + \sigma
-	\norm{\phi}^2 w_i^2,
-\end{equation*}
-where $w_i = {\abs{\phi^T v_i}}/{\norm{\phi}}$. Since $V \coloneqq [v_1,
-\dotsc, v_n]$ is orthonormal, $\norm{w}^2 = 1$.
+Since $d(t, \tau)$ is piecewise continuous, the discrete update of $\MC{M}(t)$
+is permitted, and is more desirable to deal with the eigensystem. The discrete
+update law of the information matrix can be written as
+\begin{equation}
+	M(k+1) = \rho(k) M(k) + \sigma(k) \phi(k) \phi(k)^T, \quad M(0) = 0,
+\end{equation}
+for $k = 0, 1, \cdots$, with slight abuses of notation.
 
-Let a candidate Lyapunov function be
-\begin{equation*}
-	\MC{V} = \frac{1}{2} \norm*{\tilde{\lambda}}^2,
-\end{equation*}
-where $\tilde{\lambda} = \lambda_0 - \lambda$, and the time derivative is
-\begin{equation*}
-	\dot{\MC{V}} = - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
-	\lambda_0 - \sigma \norm{\phi}^2 w^T \tilde{\Lambda} w.
-\end{equation*}
-If we take
-\begin{equation*}
-	\sigma = \frac{\rho \tilde{\lambda}^T \lambda_0}{\norm{\phi}^2
-	\tilde{\lambda}^T w} + \frac{\kappa \tilde{\lambda}^T w}{\norm{\phi}^2} \ge 0
-\end{equation*}
+Note that updating the information matrix turns into the well-known rank-one
+modification problem~\cite{bunch_rank-one_1978}, which is stated as follows:
+given a real symmetric matrix $M \in \MB{R}^{n \times n}$, a real vector
+$\phi \in \MB{R}^n$, scalars $\rho > 0$, and $\sigma \in \MB{R}$, compute
+the eigensystem of the real symmetric matrix $M^\prime$ such that
+\begin{equation}
+	M^\prime = \rho M + \sigma \phi \phi^T.
+\end{equation}
 
-\begin{equation*}
-	\sigma = \frac{1}{\norm{\phi}^2} \qty(k_1 \qty(\norm{\diag(\lambda_0)^{-1}
-	\tilde{\lambda}}_\infty - 1) + k_2 \norm*{\tilde{\lambda}}^2)
-\end{equation*}
+By adjusting two design parameter $\rho$ and $\sigma$, where $\rho \equiv 1$ in
+the original problem, we can control lower and upper bounds of
+$\lambda(M^\prime)$.
 
-\begin{align*}
-	\dot{\MC{V}} &= - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
-	\lambda_0 - k_1 \qty(\norm{\diag(\lambda_0)^{-1}
-	\tilde{\lambda}}_\infty - 1) w^T \tilde{\Lambda} w - k_2
-	\norm*{\tilde{\lambda}}^2 w^T \tilde{\Lambda} w \\
-	&\le - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
-	\lambda_0 - k_1 \qty(\norm{\diag(\lambda_0)^{-1}
-	\tilde{\lambda}}_\infty - 1) w^T \tilde{\Lambda} w - k_2
-	\norm*{\tilde{\lambda}}^2 w^T \tilde{\Lambda} w
-\end{align*}
+%TODO: to define _{-i} and eigensystem notations.
 
-\begin{align*}
-	\dot{\MC{V}} &= - \frac{\sigma \norm{\phi}^2 w_n^2 - f_n}{\lambda_n}
-	\norm{\lambda}^2 + \sigma \norm{\phi}^2 \sum \lambda_i w_i^2 \\
-	&\ge \sigma \norm{\phi}^2 \norm{\lambda}^2 \qty(-\frac{w_n^2}{\lambda_n} +
-	\sum \frac{\lambda_i w_i^2}{\norm{\lambda}^2}) + \frac{f_n}{\lambda_n}
-	\norm{\lambda}^2
-\end{align*}
+\begin{lemma}\label{lem:ipsen_eigenvalue_bounds}
+	Let $M \in \MB{C}^{n \times n}$ be Hermitian, $\phi \in \MB{C}^n$, and $M^\prime
+	\coloneqq \rho M + \sigma \phi \phi^T$ for $\rho > 0$ and $ \sigma \in
+	\MB{R}$. Also, let
+	\begin{equation*}
+		N_i^j \coloneqq \rho \mqty[\lambda_j(M) & 0 \\ 0 & \lambda_i(M)] + \sigma
+		\mqty[\norm{\phi_{-i}} \\ \phi_i] \mqty[\norm{\phi_{-i}} & \bar{\phi}_i],
+	\end{equation*}
+	for $i, j = 1, \cdots, n$. Then,
+	\begin{equation}
+		\lmin(N_1^2) \le \lambda_i(M^\prime) \le \lmax(N_n^{n-1}),
+	\end{equation}
+	for all $1 \le i \le n$.
+\end{lemma}
+
+\begin{proof}
+	With the fact that $\lambda_i(\rho M) = \rho \lambda_i(M)$, for $i = 1,
+	\dotsc, n$, the proof directly follows Theorem 2.1
+	of~\cite{ipsen_refined_2009}.
+\end{proof}
+
+Note that Lemma~\ref{lem:ipsen_eigenvalue_bounds} is an extended version of
+Theorem 2.1 of~\cite{ipsen_refined_2009} for which $\rho = \sigma = 1$.
+
+\begin{theorem}
+	Let $M \in \MB{C}^{n \times n}$ be Hermitian, $\phi \in \MB{C}^n$, $f_i^j,
+	g_i^j : \MB{R} \times \MB{R}_{+} \to \MB{R}$ be
+	\begin{align*}
+		f_i^j(\sigma, \rho) &\coloneqq \lambda_i \lambda_j \rho^2 +
+		\qty(\norm{\phi_{-i}}^2 \lambda_i + \abs{\phi_i}^2 \lambda_j) \rho \sigma
+		\\
+		g_i^j(\sigma, \rho) &\coloneqq \qty(\lambda_i + \lambda_j) \rho +
+		\norm{\phi}^2 \sigma,
+	\end{align*}
+	for $i, j = 1, \cdots, n$, and $(\sigma, \rho) \in \MB{R} \times \MB{R}_{+}$.
+	Suppose that there exist a subset $\MC{D} \subset \MB{R} \times \MB{R}_{+}$
+	for some $\zeta_1 > 0$ and $\zeta_2 \ge \zeta_1$, such that for all $(\sigma,
+	\rho) \in \MC{D}$
+	\begin{gather}
+		f_1^2(\sigma, \rho) \ge g_1^2(\sigma, \rho) \zeta_1 - \zeta_1^2,\quad
+		g_1^2(\sigma, \rho) \ge 2 \zeta_1, \label{eq:theorem condition 1}\\
+		f_n^{n-1}(\sigma, \rho) \ge g_n^{n-1}(\sigma, \rho) \zeta_2 -
+		\zeta_2^2,\quad
+		g_n^{n-1}(\sigma, \rho) \le 2 \zeta_2. \label{eq:theorem condition 2}
+	\end{gather}
+	Then,
+	\begin{equation*}
+		\zeta_1 \le \lambda_i \qty(M^\prime) \le \zeta_2,
+	\end{equation*}
+	for all $1 \le i \le n$.
+\end{theorem}
+
+\begin{proof}
+	Let the characteristic polynomial of $N_i^j$ be $p_i^j(s)$ for $1 \le i, j
+	\le n$, then
+	\begin{equation*}
+		p_i^j(s) = s^2 + f_i^j(\sigma, \rho) s + g_i^j(\sigma, \rho).
+	\end{equation*}
+
+	Since $N_i^j$ is also Herimitian for all $(\sigma, \rho) \in \MC{D}$,
+	the characteristic equation $p_i^j(s) = 0$ has two real roots denoted by
+	$\lambda_1(N_i^j)$ and $\lambda_2(N_i^j) \ge \lambda_1(N_i^j)$. Hence, the
+	conditions~\eqref{eq:theorem condition 1} and~\eqref{eq:theorem condition 2}
+	imply that
+	\begin{equation*}
+		\zeta_1 \le \lambda_1(N_1^2) \le \lambda_2(N_1^2),
+	\end{equation*}
+	and
+	\begin{equation*}
+		\lambda_1(N_n^{n-1}) \le \lambda_2(N_n^{n-1}) \le \zeta_2.
+	\end{equation*}
+	By using Lemma~\ref{lem:ipsen_eigenvalue_bounds}, we have
+	\begin{equation*}
+		\zeta_1 \le \lambda_1(N_1^2) \le \lambda_i(M^\prime) \le
+		\lambda_2(N_n^{n-1}) \le \zeta_2,
+	\end{equation*}
+	for all $1 \le i \le n$, which completes the proof.
+\end{proof}
+
+% \begin{equation*}
+% 	\dot{\lambda}_i = x_i^T \dot{\MC{M}} x_i = - \rho \lambda_i + \sigma
+% 	\norm{\phi}^2 w_i^2,
+% \end{equation*}
+% where $w_i = {\abs{\phi^T v_i}}/{\norm{\phi}}$. Since $V \coloneqq [v_1,
+% \dotsc, v_n]$ is orthonormal, $\norm{w}^2 = 1$.
+
+% Let a candidate Lyapunov function be
+% \begin{equation*}
+% 	\MC{V} = \frac{1}{2} \norm*{\tilde{\lambda}}^2,
+% \end{equation*}
+% where $\tilde{\lambda} = \lambda_0 - \lambda$, and the time derivative is
+% \begin{equation*}
+% 	\dot{\MC{V}} = - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
+% 	\lambda_0 - \sigma \norm{\phi}^2 w^T \tilde{\Lambda} w.
+% \end{equation*}
+% If we take
+% \begin{equation*}
+% 	\sigma = \frac{\rho \tilde{\lambda}^T \lambda_0}{\norm{\phi}^2
+% 	\tilde{\lambda}^T w} + \frac{\kappa \tilde{\lambda}^T w}{\norm{\phi}^2} \ge 0
+% \end{equation*}
+
+% \begin{equation*}
+% 	\sigma = \frac{1}{\norm{\phi}^2} \qty(k_1 \qty(\norm{\diag(\lambda_0)^{-1}
+% 	\tilde{\lambda}}_\infty - 1) + k_2 \norm*{\tilde{\lambda}}^2)
+% \end{equation*}
+
+% \begin{align*}
+% 	\dot{\MC{V}} &= - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
+% 	\lambda_0 - k_1 \qty(\norm{\diag(\lambda_0)^{-1}
+% 	\tilde{\lambda}}_\infty - 1) w^T \tilde{\Lambda} w - k_2
+% 	\norm*{\tilde{\lambda}}^2 w^T \tilde{\Lambda} w \\
+% 	&\le - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
+% 	\lambda_0 - k_1 \qty(\norm{\diag(\lambda_0)^{-1}
+% 	\tilde{\lambda}}_\infty - 1) w^T \tilde{\Lambda} w - k_2
+% 	\norm*{\tilde{\lambda}}^2 w^T \tilde{\Lambda} w
+% \end{align*}
+
+% \begin{align*}
+% 	\dot{\MC{V}} &= - \frac{\sigma \norm{\phi}^2 w_n^2 - f_n}{\lambda_n}
+% 	\norm{\lambda}^2 + \sigma \norm{\phi}^2 \sum \lambda_i w_i^2 \\
+% 	&\ge \sigma \norm{\phi}^2 \norm{\lambda}^2 \qty(-\frac{w_n^2}{\lambda_n} +
+% 	\sum \frac{\lambda_i w_i^2}{\norm{\lambda}^2}) + \frac{f_n}{\lambda_n}
+% 	\norm{\lambda}^2
+% \end{align*}
 
 
 
