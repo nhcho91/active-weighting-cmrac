@@ -75,6 +75,17 @@ of Mechanical and Aerospace Engineering, Seoul National University, Seoul,
 \section{Introduction}
 % ====================
 
+Model-based control is well-established design scheme for class of systems
+whose dynamics are perfectly known. However, it is impossible to know the
+perfect system dynamics, especially in the real-world applications. Systems may
+be faced with some uncertainties caused by modelling errors, dynamic
+environments, or even changes in the given mission. A small amount of uncertain
+signal can efficiently be suppressed by the inherent robustness of the
+model-based controllers. When the uncertainties get larger, it can make the
+system deviate from the set point or even unstable. With the need for higher
+levels of autonomy to address these issues, studies of \textit{adaptive}
+control techniques have been actively conducted~\cite{astrom_adaptive_1987}.
+
 Recently, there has been a great amount of work to exploit the computing power
 to improve the performance of classical control frameworks. For example, an
 inverse model or a forward model of nonlinear systems is identified using a set
@@ -94,6 +105,11 @@ excitation condition.
 
 In this paper, we propose the generalization of such excitation conditions, and
 how to ensure that excitation condition is met.
+
+\subsection{Organization of paper}
+% --------------------------------
+
+This paper is organized as follows.
 
 
 \section{Preliminaries}
@@ -360,12 +376,78 @@ what we have to do is to properly distribute the data using $d(t,
 In this section, we propose an online estimator that exploits the past data
 while satisfying pre-defined eigenvalue conditions. 
 
+Consider the following hybrid update law for $\MC{T}$ being a subset of
+$\MB{R}_{+}$.
+\begin{equation}\label{eq:hybrid update law}
+	\dot{W}(t) = - \Phi(t) W(t) + \Psi(t), \quad t \in \MB{R}_{+},
+\end{equation}
+where the discrete update part is given by
+\begin{subequations}\label{eq:discrete update part}
+	\begin{gather}
+		\dot{\Phi}(t) = 0, \quad \dot{\Psi}(t) = 0, \\
+		\intertext{for $t \in \MB{R}_{+} \setminus \MC{T}$, and}
+		\Phi^{+} (t) = r(t) \Phi(t) + s(t) \phi(t) \phi^T(t), \\
+		\Psi^{+} (t) = r(t) \Psi(t) + s(t) \phi(t) y^T(t),
+	\end{gather}
+\end{subequations}
+for $t \in \MC{T}$ with real valued functions $r(t) > 0$ and $s(t)$ which will
+be defined later. The initial conditions are $\Phi(0) = 0$, $\Psi(0) = 0$, and
+$W(0) = W_0$ with proper dimensions.
+
+Let $\MC{T}$ be an increasing sequence of real numbers as $\MC{T} \coloneqq
+\{t_k\}$ for $k = 0, 1, \dotsc$, where $ t_0 = 0 < t_1 < t_2 < \cdots $.
+Then, the discrete update part~\eqref{eq:discrete update part} implies that
+\begin{subequations}\label{eq:summation of discrete update part}
+	\begin{align}
+		\Phi(t) &= \sum_{i=0}^{k} \qty(\prod_{j=i+1}^{k} r(t_j)) s(t_i) \phi(t_i)
+		\phi^T(t_i), \\
+		\Psi(t) &= \sum_{i=0}^{k} \qty(\prod_{j=i+1}^{k} r(t_j)) s(t_i) \phi(t_i)
+		y^T(t_i),
+	\end{align}
+\end{subequations}
+where $t_k \le t < t_{k+1}$.
+
+\begin{assumption}\label{assumption:discrete bounded eigenvalues}
+	A signal $\phi$ satisfies that for some $r$, $s$ and $\MC{T}$ which
+	construct $\Phi$ in~\eqref{eq:summation of discrete update part}, there
+	exist positive scalars $t_b \in \MC{T}$, $\underline{\lambda}$ and
+	$\overline{\lambda} \ge \underline{\lambda}$ such that
+	\begin{equation}
+		0 < \underline{\lambda} \le \lambda_i\qty(\Phi(t)) \le \overline{\lambda},
+	\end{equation}
+	for all $t \ge t_b$ and $i = 0, \dotsc, n$.
+\end{assumption}
+
+\begin{proposition}
+	If a signal $\phi$ satisfies Assumption~\ref{assumption:discrete bounded
+	eigenvalues}, then the system~\eqref{eq:hybrid update law} is globally
+	exponentially stable.
+\end{proposition}
+
+\begin{proof}
+	By using $r$, $s$ and $\MC{T}$ satisfying
+	Assumption~\ref{assumption:discrete bounded eigenvalues}, let the
+	distribution $d(t, \tau)$ be
+	\begin{equation*}
+		d(t, \tau) = \sum_{i=0}^k \prod_{j=i+1}^k r(t_j) s(t_i) \delta(\tau - t_i),
+	\end{equation*}
+	for $k$ such that $t_k \le t < t_{k+1}$. Then, the information matrix
+	$\MC{M}(t)$ in equation~\eqref{eq:information matrix} satisfies
+	\begin{equation*}
+		0 < \underline{\lambda} I \le \MC{M}(t) = \Phi(t) \le \overline{\lambda} I,
+	\end{equation*}
+	for all $t \ge t_b$. This implies that the signal $\phi$ is
+	SE\textsuperscript{2}, which completes the proof.
+\end{proof}
+
 Consider the following distribution.
 \begin{equation}\label{eq:proposed distribution}
 	d(t, \tau) = \sigma(\tau) \exp( -\int_\tau^t \rho(s) \dd{s} ),
 \end{equation}
 where the real-valued functions $\rho, \sigma : \MB{R}_{+} \to \MB{R}$ are
 piecewise-continuous with the finite number of discontinuities.
+
+% 
 
 With the proposed distribution~\eqref{eq:proposed distribution}, the
 information matrix $\MC{M}(t)$ satisfies the following differential equation.
@@ -374,51 +456,74 @@ information matrix $\MC{M}(t)$ satisfies the following differential equation.
 	\MC{M}(0) = 0.
 \end{equation}
 
-\begin{equation*}
-	\dot{\lambda}_i = x_i^T \dot{\MC{M}} x_i = - \rho \lambda_i + \sigma
-	\norm{\phi}^2 w_i^2,
-\end{equation*}
-where $w_i = {\abs{\phi^T v_i}}/{\norm{\phi}}$. Since $V \coloneqq [v_1,
-\dotsc, v_n]$ is orthonormal, $\norm{w}^2 = 1$.
 
-Let a candidate Lyapunov function be
-\begin{equation*}
-	\MC{V} = \frac{1}{2} \norm*{\tilde{\lambda}}^2,
-\end{equation*}
-where $\tilde{\lambda} = \lambda_0 - \lambda$, and the time derivative is
-\begin{equation*}
-	\dot{\MC{V}} = - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
-	\lambda_0 - \sigma \norm{\phi}^2 w^T \tilde{\Lambda} w.
-\end{equation*}
-If we take
-\begin{equation*}
-	\sigma = \frac{\rho \tilde{\lambda}^T \lambda_0}{\norm{\phi}^2
-	\tilde{\lambda}^T w} + \frac{\kappa \tilde{\lambda}^T w}{\norm{\phi}^2} \ge 0
-\end{equation*}
 
-\begin{equation*}
-	\sigma = \frac{1}{\norm{\phi}^2} \qty(k_1 \qty(\norm{\diag(\lambda_0)^{-1}
-	\tilde{\lambda}}_\infty - 1) + k_2 \norm*{\tilde{\lambda}}^2)
-\end{equation*}
+\subsection{Convergence Rate}
+%============================
 
-\begin{align*}
-	\dot{\MC{V}} &= - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
-	\lambda_0 - k_1 \qty(\norm{\diag(\lambda_0)^{-1}
-	\tilde{\lambda}}_\infty - 1) w^T \tilde{\Lambda} w - k_2
-	\norm*{\tilde{\lambda}}^2 w^T \tilde{\Lambda} w \\
-	&\le - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
-	\lambda_0 - k_1 \qty(\norm{\diag(\lambda_0)^{-1}
-	\tilde{\lambda}}_\infty - 1) w^T \tilde{\Lambda} w - k_2
-	\norm*{\tilde{\lambda}}^2 w^T \tilde{\Lambda} w
-\end{align*}
+There have been lots of work 
 
-\begin{align*}
-	\dot{\MC{V}} &= - \frac{\sigma \norm{\phi}^2 w_n^2 - f_n}{\lambda_n}
-	\norm{\lambda}^2 + \sigma \norm{\phi}^2 \sum \lambda_i w_i^2 \\
-	&\ge \sigma \norm{\phi}^2 \norm{\lambda}^2 \qty(-\frac{w_n^2}{\lambda_n} +
-	\sum \frac{\lambda_i w_i^2}{\norm{\lambda}^2}) + \frac{f_n}{\lambda_n}
-	\norm{\lambda}^2
-\end{align*}
+
+
+
+
+
+%======================================
+\section{Eigenvalue Bounding Algorithm}
+%======================================
+
+We have seen that 
+
+
+
+
+
+
+% \begin{equation*}
+% 	\dot{\lambda}_i = x_i^T \dot{\MC{M}} x_i = - \rho \lambda_i + \sigma
+% 	\norm{\phi}^2 w_i^2,
+% \end{equation*}
+% where $w_i = {\abs{\phi^T v_i}}/{\norm{\phi}}$. Since $V \coloneqq [v_1,
+% \dotsc, v_n]$ is orthonormal, $\norm{w}^2 = 1$.
+
+% Let a candidate Lyapunov function be
+% \begin{equation*}
+% 	\MC{V} = \frac{1}{2} \norm*{\tilde{\lambda}}^2,
+% \end{equation*}
+% where $\tilde{\lambda} = \lambda_0 - \lambda$, and the time derivative is
+% \begin{equation*}
+% 	\dot{\MC{V}} = - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
+% 	\lambda_0 - \sigma \norm{\phi}^2 w^T \tilde{\Lambda} w.
+% \end{equation*}
+% If we take
+% \begin{equation*}
+% 	\sigma = \frac{\rho \tilde{\lambda}^T \lambda_0}{\norm{\phi}^2
+% 	\tilde{\lambda}^T w} + \frac{\kappa \tilde{\lambda}^T w}{\norm{\phi}^2} \ge 0
+% \end{equation*}
+
+% \begin{equation*}
+% 	\sigma = \frac{1}{\norm{\phi}^2} \qty(k_1 \qty(\norm{\diag(\lambda_0)^{-1}
+% 	\tilde{\lambda}}_\infty - 1) + k_2 \norm*{\tilde{\lambda}}^2)
+% \end{equation*}
+
+% \begin{align*}
+% 	\dot{\MC{V}} &= - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
+% 	\lambda_0 - k_1 \qty(\norm{\diag(\lambda_0)^{-1}
+% 	\tilde{\lambda}}_\infty - 1) w^T \tilde{\Lambda} w - k_2
+% 	\norm*{\tilde{\lambda}}^2 w^T \tilde{\Lambda} w \\
+% 	&\le - \rho \norm*{\tilde{\lambda}}^2 + \rho \tilde{\lambda}^T
+% 	\lambda_0 - k_1 \qty(\norm{\diag(\lambda_0)^{-1}
+% 	\tilde{\lambda}}_\infty - 1) w^T \tilde{\Lambda} w - k_2
+% 	\norm*{\tilde{\lambda}}^2 w^T \tilde{\Lambda} w
+% \end{align*}
+
+% \begin{align*}
+% 	\dot{\MC{V}} &= - \frac{\sigma \norm{\phi}^2 w_n^2 - f_n}{\lambda_n}
+% 	\norm{\lambda}^2 + \sigma \norm{\phi}^2 \sum \lambda_i w_i^2 \\
+% 	&\ge \sigma \norm{\phi}^2 \norm{\lambda}^2 \qty(-\frac{w_n^2}{\lambda_n} +
+% 	\sum \frac{\lambda_i w_i^2}{\norm{\lambda}^2}) + \frac{f_n}{\lambda_n}
+% 	\norm{\lambda}^2
+% \end{align*}
 
 
 
