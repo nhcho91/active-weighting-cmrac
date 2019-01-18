@@ -75,16 +75,21 @@ of Mechanical and Aerospace Engineering, Seoul National University, Seoul,
 \section{Introduction}
 % ====================
 
-Model-based control is well-established design scheme for class of systems
-whose dynamics are perfectly known. However, it is impossible to know the
-perfect system dynamics, especially in the real-world applications. Systems may
-be faced with some uncertainties caused by modelling errors, dynamic
-environments, or even changes in the given mission. A small amount of uncertain
-signal can efficiently be suppressed by the inherent robustness of the
-model-based controllers. When the uncertainties get larger, it can make the
-system deviate from the set point or even unstable. With the need for higher
-levels of autonomy to address these issues, studies of \textit{adaptive}
-control techniques have been actively conducted~\cite{astrom_adaptive_1987}.
+Model-based control is well-established design scheme for class of systems whose dynamics are perfectly known.
+However, it is impossible to know the perfect system dynamics, especially in the real-world applications.
+Systems may be faced with some uncertainties caused by modelling errors, dynamic environments, or even changes in the given mission.
+A small amount of uncertain signal can efficiently be suppressed by the inherent robustness of the model-based controllers.
+When the uncertainties get larger, it can make the system deviate from the set point or even unstable.
+With the need for higher levels of autonomy to address these issues, studies of \textit{adaptive} control techniques have been actively conducted~\cite{astrom_adaptive_1987}.
+
+An uncertanty is usually treated as an unexpected signal inserted into the known system.
+If the uncertain signal can be parameterized with known basis functions, the first thing we can try is to estimate the parameters.
+Any controller can be synthesized based on the estimated system, called \textit{indirect} adaptive control.
+However, it is hard to guarantee the stability during the learning phase, as the controller strictly depends on the estimation.
+Another approach, \textit{direct} adaptive control scheme, is aimed at stabilizing the system without perfect estimation of the uncertainty.
+
+
+
 
 Recently, there has been a great amount of work to exploit the computing power
 to improve the performance of classical control frameworks. For example, an
