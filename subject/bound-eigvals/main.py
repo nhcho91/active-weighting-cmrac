@@ -24,7 +24,7 @@ class System():
         next_x = x + args.t_step * (
             args.A.dot(x[:, np.newaxis])
             + args.B.dot(self.unc.Lambda).dot(
-                (u + self.unc.delta(x))[:, np.newaxis])
+                (u + self.unc.delta(t, x))[:, np.newaxis])
             + args.Br.dot(self.command(t)[:, np.newaxis])
         ).ravel()
 
@@ -39,8 +39,8 @@ class Uncertainty():
     def basis(self, x):
         return np.hstack((x[:2], np.abs(x[:2])*x[1], x[0]**3))
 
-    def delta(self, x):
-        return self.W.T.dot(self.basis(x))
+    def delta(self, t, x):
+        return self.W.T.dot(self.basis(x)) + 0.2 * np.sin(3 * t)
 
 
 class Cmrac():
@@ -66,6 +66,8 @@ class Cmrac():
         best_basissum = basissum.copy()
         estsum = np.zeros((args.ndim_basis, args.ndim_input))
         best_estsum = estsum.copy()
+        h = np.float64(0)
+        best_h = h.copy()
 
         return Arguments(
             xr=xr,
@@ -77,6 +79,8 @@ class Cmrac():
             a=0, b=1,
             best_basissum=best_basissum,
             best_estsum=best_estsum,
+            h=h,
+            best_h=best_h,
         )
 
     def get_inputs(self, t, x, uvar):
@@ -98,6 +102,8 @@ class Cmrac():
         best_basissum = uvar.best_basissum
         estsum = uvar.estsum
         best_estsum = uvar.best_estsum
+        h = uvar.h
+        best_h = uvar.best_h
         a, b = uvar.a, uvar.b
 
         u = self.get_ua(t, x, uvar)
@@ -134,10 +140,11 @@ class Cmrac():
         elif args.case == 'BECMRAC':
             eigs, _ = eig_thr(basissum, args.thr)
             self.lmax = args.lambda_max * np.tanh(args.lmax_speed*t) + 1e-3
+            self.Lgamma = args.b_gamma * np.tanh(args.lmax_speed*t) + 1e-3
             # self.lmax = np.clip(1.001 * max(eigs), 0.1, 3)
 
             if max(eigs) != 0:
-                a, b = self.findab(basissum, phif)
+                a, b = self.findab(basissum, phif, h)
             elif sla.norm(phif) > args.thr:
                 a, b = 0.999, self.lmax / sla.norm(phif)**2
         elif args.case == 'SLSCMRAC':
@@ -154,6 +161,7 @@ class Cmrac():
             if eig_thr(basissum, 0)[0][0] > eig_thr(best_basissum, 0)[0][0]:
                 best_basissum = basissum.copy()
                 best_estsum = estsum.copy()
+                best_h = h.copy()
                 # print(t, eig_thr(basissum, 0)[0][0])
 
             next_what = what + args.t_step * (
@@ -164,9 +172,11 @@ class Cmrac():
 
         next_basissum = a * basissum + b * np.outer(phif, phif)
         next_estsum = a * estsum + b * np.outer(phif, esterror)
+        next_h = a * h + b * np.abs(b) * np.linalg.norm(phif)
 
         return Arguments(xr=next_xr, what=next_what, phif=next_phif,
                          z=next_z, basissum=next_basissum, estsum=next_estsum,
+                         h=next_h, best_h=best_h,
                          a=a, b=b, best_basissum=best_basissum,
                          best_estsum=best_estsum)
 
@@ -178,7 +188,7 @@ class Cmrac():
 
         return c
 
-    def findab(self, A, y):
+    def findab(self, A, y, h):
         # ipdb.set_trace()
         args = self.args
 
@@ -201,6 +211,7 @@ class Cmrac():
         nv = sla.norm(y)
 
         lmax = self.lmax
+        Lgamma = self.Lgamma
 
         if gn == ln:
             return lmax / 2 / ln, lmax / 2 / nv**2
@@ -210,17 +221,16 @@ class Cmrac():
 
         p = lmax / ln * np.sqrt(
             (1 - 1/kn) * ln / (ln - gn) * (ln / kn / (ln - gn) - 1))
-        s0 = np.arctan2(
-            lmax/ln * (2 * (1 - 1/kn) * ln - gn) / 2 / (ln - gn), p)
+        s0 = 0
 
         eargs = Arguments(l1=l1, ln=ln, g1=g1, gn=gn, nv=nv, k1=k1, kn=kn, p=p,
-                          s0=s0, v1=v1, lmax=lmax)
+                          s0=s0, v1=v1, lmax=lmax, Lgamma=Lgamma, h=h)
         self.eargs = eargs
 
         s = scipy.optimize.minimize_scalar(
             self._findr,
             method='bounded',
-            bounds=(- np.pi/2 + s0 + 1e-8, np.pi/2 + s0 - 1e-8))
+            bounds=(s0, Lgamma / (nv * h + 1e-8)))
 
         if s.fun < -l1:
             a, b = self._findab_from_s(np.clip(s.x, -1e-7, None))
@@ -243,13 +253,11 @@ class Cmrac():
         return -r
 
     def _findab_from_s(self, s):
-        p, s0, kn, ln, gn, nv, lmax = map(
-            self.eargs.get, ['p', 's0', 'kn', 'ln', 'gn', 'nv', 'lmax'])
+        nv, Lgamma, h = map(
+            self.eargs.get, ["nv", "Lgamma", "h"])
 
-        a = - p / np.cos(s - s0) - p * np.tan(s - s0) + lmax / (kn * (ln - gn))
-        b = 2 * ln / kn / nv**2 * (
-            p * np.tan(s - s0)
-            + lmax/ln * (2 * (1 - 1/kn) * ln - gn) / 2 / (ln - gn))
+        a = Lgamma / h - s * nv
+        b = s * h
 
         return a, b
 
@@ -341,7 +349,7 @@ if __name__ == '__main__':
     args.thr = 1e-8
 
     # MRAC
-    if False:
+    if True:
         env = main(args)
         save(env.args, 'data/record_mrac.npz')
         print('MRAC - end')
@@ -352,12 +360,13 @@ if __name__ == '__main__':
     args.g_indirect = 1
 
     # Bounding Eigenvalue CMRAC
-    if False:
+    if True:
         args.case = 'BECMRAC'
         args.t_step = 5e-4
         args.tau_f = 1e-3
         args.lambda_max = 2.9e3
         args.lmax_speed = 0.15
+        args.b_gamma = 0.1
         args.thr = 1e-8
         env = main(args)
         save(env.args, 'data/record_becmrac.npz')
@@ -367,7 +376,7 @@ if __name__ == '__main__':
         env = load('data/record_becmrac.npz')
 
     # Standard LS CMRAC
-    if False:
+    if True:
         args.case = 'SLSCMRAC'
         env = main(args)
         save(env.args, 'data/record_slscmrac.npz')
@@ -377,7 +386,7 @@ if __name__ == '__main__':
         env = load('data/record_slscmrac.npz')
 
     # Finite Excited CMRAC (N. Cho)
-    if False:
+    if True:
         args.case = 'FECMRAC'
         args.t_step = 5e-4
         args.tau_f = 1e-3
@@ -390,7 +399,7 @@ if __name__ == '__main__':
         env = load('data/record_fecmrac.npz')
 
     # Compare
-    if False:
+    if True:
         mrac = load('data/record_mrac.npz')
         be = load('data/record_becmrac.npz')
         fe = load('data/record_fecmrac.npz')
