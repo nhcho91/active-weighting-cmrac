@@ -39,8 +39,12 @@ class Uncertainty():
     def basis(self, x):
         return np.hstack((x[:2], np.abs(x[:2])*x[1], x[0]**3))
 
+    def parameter(self, t):
+        return self.W + 20 * np.tanh(t / 10)
+
     def delta(self, t, x):
-        return self.W.T.dot(self.basis(x)) + 0.2 * np.sin(3 * t)
+        W = self.parameter(t)
+        return W.T.dot(self.basis(x)) + 0.2 * np.sin(3 * t)
 
 
 class Cmrac():
@@ -76,7 +80,7 @@ class Cmrac():
             z=z,
             basissum=basissum,
             estsum=np.zeros((args.ndim_basis, args.ndim_input)),
-            a=0, b=1,
+            q=0, p=1,
             best_basissum=best_basissum,
             best_estsum=best_estsum,
             h=h,
@@ -104,7 +108,7 @@ class Cmrac():
         best_estsum = uvar.best_estsum
         h = uvar.h
         best_h = uvar.best_h
-        a, b = uvar.a, uvar.b
+        q, p = uvar.q, uvar.p
 
         u = self.get_ua(t, x, uvar)
 
@@ -136,29 +140,29 @@ class Cmrac():
         ).ravel()
 
         if args.case == 'MRAC':
-            a, b = 0, 0
+            q, p = 0, 0
         elif args.case == 'BECMRAC':
             eigs, _ = eig_thr(basissum, args.thr)
-            self.lmax = args.lambda_max * np.tanh(args.lmax_speed*t) + 1e-3
+            self.L = args.lambda_max * np.tanh(args.lmax_speed*t) + 1e-3
             self.Lgamma = args.b_gamma * np.tanh(args.lmax_speed*t) + 1e-3
-            # self.lmax = np.clip(1.001 * max(eigs), 0.1, 3)
+            # self.L = np.clip(1.001 * max(eigs), 0.1, 3)
 
             if max(eigs) != 0:
-                a, b = self.findab(basissum, phif, h)
+                q, p = self.findab(basissum, phif, h)
             elif sla.norm(phif) > args.thr:
-                a, b = 0.999, self.lmax / sla.norm(phif)**2
+                q, p = 0.999, self.L / sla.norm(phif)**2
         elif args.case == 'SLSCMRAC':
-            a, b = 0, 1
+            q, p = 0, 1
         elif args.case == 'FECMRAC':
             # ipdb.set_trace()
-            b = args.t_step
+            p = args.t_step
             alp = (
                 0.1
                 + (10 - 0.1)*np.tanh(0.1 * sla.norm((phif - phi)/args.tau_f))
             )
-            a = 1 - alp * args.t_step
+            q = 1 - alp * args.t_step
 
-            if eig_thr(basissum, 0)[0][0] > eig_thr(best_basissum, 0)[0][0]:
+            if eig_thr(basissum)[0][0] > eig_thr(best_basissum)[0][0]:
                 best_basissum = basissum.copy()
                 best_estsum = estsum.copy()
                 best_h = h.copy()
@@ -170,14 +174,14 @@ class Cmrac():
                 - args.g_indirect * (best_basissum.dot(what) - best_estsum)
             )
 
-        next_basissum = a * basissum + b * np.outer(phif, phif)
-        next_estsum = a * estsum + b * np.outer(phif, esterror)
-        next_h = a * h + b * np.abs(b) * np.linalg.norm(phif)
+        next_basissum = q * basissum + p * np.outer(phif, phif)
+        next_estsum = q * estsum + p * np.outer(phif, esterror)
+        next_h = q * h + p * np.abs(p) * np.linalg.norm(phif)
 
         return Arguments(xr=next_xr, what=next_what, phif=next_phif,
                          z=next_z, basissum=next_basissum, estsum=next_estsum,
                          h=next_h, best_h=best_h,
-                         a=a, b=b, best_basissum=best_basissum,
+                         q=q, p=p, best_basissum=best_basissum,
                          best_estsum=best_estsum)
 
     def command(self, t):
@@ -210,21 +214,19 @@ class Cmrac():
         v1, vn = v[[0, -1]]
         nv = sla.norm(y)
 
-        lmax = self.lmax
+        L = self.L
         Lgamma = self.Lgamma
 
         if gn == ln:
-            return lmax / 2 / ln, lmax / 2 / nv**2
+            return L / 2 / ln, L / 2 / nv**2
 
         k1 = (l1 + v1**2/nv**2 * g1) / (l1 + g1)
         kn = (ln - vn**2/nv**2 * gn) / (ln - gn)
 
-        p = lmax / ln * np.sqrt(
-            (1 - 1/kn) * ln / (ln - gn) * (ln / kn / (ln - gn) - 1))
         s0 = 0
 
-        eargs = Arguments(l1=l1, ln=ln, g1=g1, gn=gn, nv=nv, k1=k1, kn=kn, p=p,
-                          s0=s0, v1=v1, lmax=lmax, Lgamma=Lgamma, h=h)
+        eargs = Arguments(l1=l1, ln=ln, g1=g1, gn=gn, nv=nv, k1=k1, kn=kn,
+                          s0=s0, v1=v1, L=L, Lgamma=Lgamma, h=h)
         self.eargs = eargs
 
         s = scipy.optimize.minimize_scalar(
@@ -233,33 +235,36 @@ class Cmrac():
             bounds=(s0, Lgamma / (nv * h + 1e-8)))
 
         if s.fun < -l1:
-            a, b = self._findab_from_s(np.clip(s.x, -1e-7, None))
+            q, p = self._findab_from_s(np.clip(s.x, -1e-7, None))
         else:
-            a, b = 1, 0
+            q, p = 1, 0
 
-        return a, b
+        return q, p
 
     def _findr(self, s):
         l1, g1, nv, v1 = map(
             self.eargs.get, ['l1', 'g1', 'nv', 'v1'])
 
-        a, b = self._findab_from_s(s)
+        q, p = self._findab_from_s(s)
         r = (
-            a * (l1 + 0.5 * g1)
-            + 0.5 * b * nv**2
-            - 0.5 * np.sqrt((a * g1 + b * nv**2)**2 - 4 * a * b * g1 * v1**2)
+            q * (l1 + 0.5 * g1)
+            + 0.5 * p * nv**2
+            - 0.5 * np.sqrt((q * g1 + p * nv**2)**2 - 4 * q * p * g1 * v1**2)
         )
 
         return -r
 
     def _findab_from_s(self, s):
-        nv, Lgamma, h = map(
-            self.eargs.get, ["nv", "Lgamma", "h"])
+        ln, gn, vn, nv, L, Lgamma, h = map(
+            self.eargs.get, ["ln", "gn", "vn", "nv", "L", "Lgamma", "h"])
 
-        a = Lgamma / h - s * nv
-        b = s * h
+        q = Lgamma / h - s * nv
+        p1 = s * h
+        p2 = (L - ln * q) * (L - (ln - gn) * q) / (
+            (L - ln * 1) * nv**2 + gn * nv**2 * q)
+        p = min(p1, p2)
 
-        return a, b
+        return q, p
 
 
 def save(args, filename):
@@ -298,7 +303,7 @@ def main(args):
 
     args.ts = np.arange(0, args.t_final, args.t_step)
     for t in tqdm(args.ts, mininterval=1):
-        # get a control input
+        # get q control input
         u = control.get_inputs(t, x, uvar)
 
         # steps
@@ -310,12 +315,13 @@ def main(args):
         record.append('input', u)
         record.append('reference_model', uvar.xr)
         record.append('what', uvar.what.ravel())
+        record.append('w', system.unc.parameter(t).ravel())
         record.append('basissum', uvar.basissum)
         record.append('phif', uvar.phif)
         record.append('z', uvar.z)
         record.append('e', x - uvar.xr)
-        record.append('a', uvar.a)
-        record.append('b', uvar.b)
+        record.append('q', uvar.q)
+        record.append('p', uvar.p)
         record.append('best_basissum', uvar.best_basissum)
 
         x = next_x
@@ -335,13 +341,13 @@ if __name__ == '__main__':
     args.ndim_input = 1
     args.ndim_basis = 5
     args.xinit = np.array([0.3, 0, 0])
-    args.Kr = np.array([[1]])
+    # args.Kr = np.array([[1]])
     args.Q_lyap = 1*np.eye(args.ndim_state)
     args.g_direct = 10000
     args.g_indirect = 0
     args.case = 'MRAC'
     args.t_step = 1e-3
-    args.t_final = 40
+    args.t_final = 80
     args.W = np.array([-18.59521, 15.162375, -62.45153,
                        9.54708, 21.45291])[:, np.newaxis]
     args.Lambda = np.diag([1])
@@ -366,7 +372,7 @@ if __name__ == '__main__':
         args.tau_f = 1e-3
         args.lambda_max = 2.9e3
         args.lmax_speed = 0.15
-        args.b_gamma = 0.1
+        args.b_gamma = 100
         args.thr = 1e-8
         env = main(args)
         save(env.args, 'data/record_becmrac.npz')
@@ -376,7 +382,7 @@ if __name__ == '__main__':
         env = load('data/record_becmrac.npz')
 
     # Standard LS CMRAC
-    if True:
+    if False:
         args.case = 'SLSCMRAC'
         env = main(args)
         save(env.args, 'data/record_slscmrac.npz')

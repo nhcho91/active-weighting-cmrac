@@ -81,9 +81,9 @@ def plot_eigvals(env):
 
     plt.figure()
     plt.subplot(211)
-    plt.plot(x, args.a)
+    plt.plot(x, args.q)
     plt.subplot(212)
-    plt.plot(x, args.b)
+    plt.plot(x, args.p)
 
     plt.figure()
     plt.plot(x, list(map(
@@ -160,9 +160,7 @@ def compare(mrac, be, fe):
     # ====================
     plt.figure(figsize=(4.51, 4.14))
 
-    for w in mrac.args.W.ravel():
-        plt.axhline(y=w, **basic_kwargs, ls='--', label='Real')
-
+    plt.plot(x, mrac.args.w, **basic_kwargs, ls="--", label="Real")
     plt.plot(x, mrac.args.what, **mrac.kwargs)
     plt.plot(fe.args.time, fe.args.what, **fe.kwargs)
     plt.plot(be.args.time, be.args.what, **be.kwargs)
@@ -187,11 +185,11 @@ def compare(mrac, be, fe):
     # ===========================
     plt.figure(figsize=(8.02, 3.74))
 
-    plt.plot(x, sla.norm(mrac.args.what - mrac.args.W.T, axis=1),
+    plt.plot(x, sla.norm(mrac.args.what - mrac.args.w, axis=1),
              **mrac.kwargs)
-    plt.plot(fe.args.time, sla.norm(fe.args.what - fe.args.W.T, axis=1),
+    plt.plot(fe.args.time, sla.norm(fe.args.what - fe.args.w, axis=1),
              **fe.kwargs)
-    plt.plot(be.args.time, sla.norm(be.args.what - be.args.W.T, axis=1),
+    plt.plot(be.args.time, sla.norm(be.args.what - be.args.w, axis=1),
              **be.kwargs)
 
     plt.ylabel(r'$||\tilde{W}||$')
@@ -275,7 +273,7 @@ def compare(mrac, be, fe):
         plt.savefig('media/eigenvalues.png', dpi=400)
 
     # ===========
-    # The a and b
+    # The q and p
     # ===========
     plt.figure(figsize=(11.57, 5.56))
 
@@ -283,23 +281,23 @@ def compare(mrac, be, fe):
     be.kwargs, be.kwargs_tmp = dict(be.kwargs, lw=1.3), be.kwargs
 
     ax1 = plt.subplot(121)
-    plt.plot(fe.args.time, fe.args.a, **fe.kwargs)
-    plt.plot(be.args.time, be.args.a, **be.kwargs)
-    plt.ylabel(r'$a$')
+    plt.plot(fe.args.time, fe.args.q, **fe.kwargs)
+    plt.plot(be.args.time, be.args.q, **be.kwargs)
+    plt.ylabel(r'$q$')
     plt.xlabel('Time, sec')
     plt.legend(loc='best')
 
     ax2 = plt.subplot(122)
-    plt.plot(fe.args.time, fe.args.b, **fe.kwargs)
-    plt.plot(be.args.time, be.args.b, **be.kwargs)
-    plt.ylabel(r'$b$')
+    plt.plot(fe.args.time, fe.args.p, **fe.kwargs)
+    plt.plot(be.args.time, be.args.p, **be.kwargs)
+    plt.ylabel(r'$p$')
     plt.xlabel('Time, sec')
     plt.ylim(-10, 50)
 
     axins = zoomed_inset_axes(ax1, 1)
     axins.set_axes_locator(InsetPosition(ax1, [0.2, 0.6, 0.38, 0.2]))
-    axins.plot(fe.args.time, fe.args.a, **fe.kwargs)
-    axins.plot(be.args.time, be.args.a, **be.kwargs)
+    axins.plot(fe.args.time, fe.args.q, **fe.kwargs)
+    axins.plot(be.args.time, be.args.q, **be.kwargs)
     axins.set_xlim(-0.001, 0.02)
     axins.set_ylim(-0.1, 3.2)
     plt.xticks(fontsize=8)
@@ -308,8 +306,8 @@ def compare(mrac, be, fe):
 
     axins2 = zoomed_inset_axes(ax1, 1)
     axins2.set_axes_locator(InsetPosition(ax1, [0.55, 0.3, 0.38, 0.2]))
-    axins2.plot(fe.args.time, fe.args.a, **fe.kwargs)
-    axins2.plot(be.args.time, be.args.a, **be.kwargs)
+    axins2.plot(fe.args.time, fe.args.q, **fe.kwargs)
+    axins2.plot(be.args.time, be.args.q, **be.kwargs)
     axins2.set_xlim(20, 22)
     axins2.set_ylim(0.995, 1.005)
     plt.xticks(fontsize=8)
@@ -318,8 +316,8 @@ def compare(mrac, be, fe):
 
     axins3 = zoomed_inset_axes(ax2, 1)
     axins3.set_axes_locator(InsetPosition(ax2, [0.65, 0.3, 0.32, 0.20]))
-    axins3.plot(fe.args.time, fe.args.b, **fe.kwargs)
-    axins3.plot(be.args.time, be.args.b, **be.kwargs)
+    axins3.plot(fe.args.time, fe.args.p, **fe.kwargs)
+    axins3.plot(be.args.time, be.args.p, **be.kwargs)
     axins3.set_xlim(20, 22)
     axins3.set_ylim(-0.5, 3.1)
     plt.xticks(visible=False)
@@ -329,8 +327,8 @@ def compare(mrac, be, fe):
     axins4 = zoomed_inset_axes(ax2, 1)
 
     axins4.set_axes_locator(InsetPosition(ax2, [0.4, 0.6, 0.55, 0.3]))
-    axins4.plot(fe.args.time, fe.args.b, **fe.kwargs)
-    axins4.plot(be.args.time, be.args.b, **be.kwargs)
+    axins4.plot(fe.args.time, fe.args.p, **fe.kwargs)
+    axins4.plot(be.args.time, be.args.p, **be.kwargs)
     # axins4.set_xlim(0, 10)
     # axins4.set_ylim(-1e10, 1e12)
 
@@ -357,23 +355,23 @@ def ba_region():
     agent = BeAgent(args)
 
     np.random.seed(1)
-    a = np.random.rand(5, 5)
-    A = a.T.dot(a)
+    q = np.random.rand(5, 5)
+    A = q.T.dot(q)
     y = np.random.rand(5)
 
     eargs = agent._make_eargs(A, y)
 
-    def f1(b, a, eargs):
-        temp = lambda b, a: agent._f_from_ab(
-            a, b, c=eargs.c1, l1=eargs.l1, l2=eargs.g1 + eargs.l1,
+    def f1(p, q, eargs):
+        temp = lambda p, q: agent._f_from_ab(
+            q, p, c=eargs.c1, l1=eargs.l1, l2=eargs.g1 + eargs.l1,
             v1=eargs.v1, nv=eargs.nv)
-        return np.vectorize(temp)(b, a)
+        return np.vectorize(temp)(p, q)
 
-    def fn(b, a, eargs):
-        temp = lambda b, a: agent._f_from_ab(
-            a, b, c=eargs.cn, l1=eargs.ln, l2=eargs.ln - eargs.gn,
+    def fn(p, q, eargs):
+        temp = lambda p, q: agent._f_from_ab(
+            q, p, c=eargs.cn, l1=eargs.ln, l2=eargs.ln - eargs.gn,
             v1=eargs.vn, nv=eargs.nv)
-        return np.vectorize(temp)(b, a)
+        return np.vectorize(temp)(p, q)
 
     bb, aa = np.meshgrid(np.linspace(-2, 5, 500),
                          np.linspace(-0.2, 1.3, 500))
@@ -390,9 +388,9 @@ def ba_region():
 
     fv2[fv2 == 0] = np.inf
 
-    a, b = agent.findab(A, y, eargs.ln)
+    q, p = agent.findab(A, y, eargs.ln)
     lmin = agent._c_from_ab(
-        a, b, eargs.l1, eargs.l1 + eargs.g1, eargs.v1, eargs.nv)
+        q, p, eargs.l1, eargs.l1 + eargs.g1, eargs.v1, eargs.nv)
     fv3 = f1(bb, aa, Arguments(eargs, c1=lmin))
 
     # Colorful
@@ -425,7 +423,7 @@ def ba_region():
     c3 = plt.contour(bb, aa, fv3/eargs.l1, [lmin/eargs.l1],
                      colors=['b'], alpha=.9,
                      linewidths=1.5, linestyles='dashed')
-    plt.plot(b, a, marker='*', c='g', markersize=12)
+    plt.plot(p, q, marker='*', c='g', markersize=12)
 
     plt.clabel(c1, fmt='%3.1f', inline=True, use_clabeltext=True,
                fontsize=10)
@@ -434,8 +432,8 @@ def ba_region():
     plt.clabel(c3, fmt='%5.3f', inline=True, use_clabeltext=True,
                fontsize=11)
 
-    plt.xlabel('b')
-    plt.ylabel('a')
+    plt.xlabel('p')
+    plt.ylabel('q')
 
     plt.tight_layout()
 
@@ -466,7 +464,7 @@ def ba_region():
 
     plt.contour(bb, aa, z1, 1, colors='k', linewidths=2)
 
-    plt.plot(b, a, marker='*', c='k', markersize=11)
+    plt.plot(p, q, marker='*', c='k', markersize=11)
 
     kwargs = dict(fmt='%3.1f', inline=True, fontsize=10)
     plt.clabel(c1_dashed, **kwargs)
@@ -475,8 +473,8 @@ def ba_region():
     plt.clabel(c2, **kwargs)
     plt.clabel(c3, **dict(kwargs, fmt='%5.3f', fontsize=11))
 
-    plt.xlabel(r'$b$')
-    plt.ylabel(r'$a$')
+    plt.xlabel(r'$p$')
+    plt.ylabel(r'$q$')
 
     plt.tight_layout()
 
