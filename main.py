@@ -1076,6 +1076,38 @@ def exp4_plot():
     plt.show()
 
 
+def get_table():
+    def get_data(datadir):
+        data = SN()
+        env, info = fym.logging.load(list(datadir.glob("*env.h5"))[0],
+                                     with_info=True)
+        data.env = env
+        data.info = info
+        agentlist = list(datadir.glob("*agent.h5"))
+        if agentlist != []:
+            data.agent = fym.logging.load(agentlist[0])
+        data.style = dict(label=info["cfg"].label)
+        return data
+
+    datadir = Path("data", "exp4")
+    mrac = get_data(Path(datadir, "data00"))
+    fecmrac = get_data(Path(datadir, "data01"))
+    becmrac = get_data(Path(datadir, "data03"))
+    data = [mrac, fecmrac, becmrac]
+    data_no_mrac = [fecmrac, becmrac]
+
+    # ================
+    # Get Table Values
+    # ================
+    print("Eta", [
+        np.sqrt(
+            np.linalg.norm(d.env["e"].squeeze()[-1, :])**2
+            + np.linalg.norm((d.env["W"] - d.env["Wcirc"]).squeeze()[-1, :])**2
+        ) for d in data])
+    print("h", [np.linalg.norm(d.agent["h"].squeeze()[-1]) for d in data_no_mrac])
+    print("kappa", [d.agent["eigs"][-1, -1] / d.agent["eigs"][-1, 0] for d in data_no_mrac])
+
+
 def main():
     # run_mrac()
     # run_becmrac()
@@ -1092,7 +1124,9 @@ def main():
     # exp3_plot()
 
     # exp4()
-    exp4_plot()
+    # exp4_plot()
+
+    get_table()
 
 
 if __name__ == "__main__":
